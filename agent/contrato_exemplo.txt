@@ -1,0 +1,31 @@
+CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL
+
+Pelo presente instrumento particular, de um lado:
+
+CONTRATANTE: TechSolutions Ltda., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 12.345.678/0001-90, com sede na Av. Paulista, nº 1000, São Paulo/SP;
+
+e, de outro lado:
+
+CONTRATADA: Alfa Consultoria em IA S.A., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 98.765.432/0001-10, com sede na Rua da Inovação, nº 500, Florianópolis/SC;
+
+Têm entre si justo e contratado o seguinte:
+
+CLÁUSULA PRIMEIRA - DO OBJETO
+O presente contrato tem por objeto a prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.
+
+CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO
+Pela prestação dos serviços contratados, a CONTRATANTE pagará à CONTRATADA o valor total fixo e irreajustável de R$ 45.000,00 (quarenta e cinco mil reais), distribuídos em 3 (três) parcelas mensais e consecutivas de R$ 15.000,00 (quinze mil reais), vencendo-se a primeira em 15/09/2026.
+
+CLÁUSULA TERCEIRA - DA VIGÊNCIA
+O presente contrato vigorará pelo prazo determinado de 6 (seis) meses, com início em 01/09/2026 e término previsto em 01/03/2027, podendo ser renovado mediante termo aditivo escrito.
+
+CLÁUSULA QUARTA - DA RESCISÃO E MULTA
+O presente contrato poderá ser rescindido por qualquer das partes mediante aviso prévio por escrito com antecedência mínima de 30 (trinta) dias. Na hipótese de rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado, a parte rescindente pagará à outra uma multa compensatória equivalente a 20% (vinte por cento) do valor remanescente do contrato.
+
+São Paulo, 01 de setembro de 2026.
+
+_______________________________________
+TechSolutions Ltda. (CONTRATANTE)
+
+_______________________________________
+Alfa Consultoria em IA S.A. (CONTRATADA)

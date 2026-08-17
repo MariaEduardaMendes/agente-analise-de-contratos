@@ -1,0 +1,20 @@
+{
+  "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
+  "contratante": {
+    "nome": "TechSolutions Ltda.",
+    "cnpj_cpf": "12.345.678/0001-90",
+    "papel": "CONTRATANTE"
+  },
+  "contratada": {
+    "nome": "Alfa Consultoria em IA S.A.",
+    "cnpj_cpf": "98.765.432/0001-10",
+    "papel": "CONTRATADA"
+  },
+  "objeto": "desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos",
+  "valor_total_brl": 45000.0,
+  "forma_pagamento": "3 parcelas mensais e consecutivas",
+  "vigencia_meses": 6,
+  "data_inicio": "01/09/2026",
+  "multa_rescisao_percentual": 20.0,
+  "aviso_previo_dias": 30
+}
