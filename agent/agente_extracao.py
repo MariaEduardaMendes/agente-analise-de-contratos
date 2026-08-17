@@ -146,10 +146,16 @@ def extrair_mock() -> DadosContrato:
         aviso_previo_dias=30
     )
 
-def executar_extracao(caminho_contrato: str = "contrato_exemplo.txt", caminho_saida: str = "resultado_extracao.json"):
+def executar_extracao(caminho_contrato: str = None, caminho_saida: str = None):
     """
     Lê o contrato, executa o agente via Runner e valida result.final_output como Pydantic object.
     """
+    diretorio_script = Path(__file__).parent
+    if caminho_contrato is None:
+        caminho_contrato = diretorio_script / "contrato_exemplo.txt"
+    if caminho_saida is None:
+        caminho_saida = diretorio_script / "resultado_extracao.json"
+
     arquivo_input = Path(caminho_contrato)
     if not arquivo_input.exists():
         print(f"Erro: O arquivo de contrato '{caminho_contrato}' não foi encontrado.", file=sys.stderr)
