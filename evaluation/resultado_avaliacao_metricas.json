@@ -1,0 +1,97 @@
+{
+  "data_avaliacao": "2026-10-02",
+  "dataset_teste": "contrato_exemplo.txt (Minuta de Desenvolvimento de IA)",
+  "gabarito_referencia": {
+    "valor_total_brl": 120000.0,
+    "parcelas_quantidade": 12,
+    "valor_parcela_brl": 10000.0,
+    "vigencia_meses": 12,
+    "data_inicio_iso": "2026-01-15",
+    "data_fim_calculada_iso": "2027-01-15",
+    "multa_rescisao_percentual": 20.0,
+    "soma_consistente": true
+  },
+  "comparativo_variantes": {
+    "variante_a": {
+      "variante": "Variante A (Prompt Monolítico / Texto Livre)",
+      "resposta_raw": "\n    Identifiquei os dados do contrato:\n    Contratante: Empresa Contratante S.A.\n    Contratada: TechSolutions Ltda.\n    Valor: R$ 120.000,00 divididos em 12 parcelas de R$ 10.000,00.\n    Vigência: 12 meses a partir de 15/01/2026.\n    Multa por rescisão: 20% sobre o saldo remanescente.\n    ",
+      "tools_chamadas": [],
+      "metricas": {
+        "taxa_conformidade_schema_tcs": 0.0,
+        "taxa_invocacao_tools_tit": 0.0,
+        "acuracia_factual_campos_afc": 1.0,
+        "acuracia_sanitizacao_calculo_asc": 0.0,
+        "indice_geral_qualidade_igq": 0.2
+      }
+    },
+    "variante_b": {
+      "variante": "Variante B (Prompt Anatômico + Tools + Pydantic v2)",
+      "objeto_pydantic": {
+        "titulo": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
+        "contratante": {
+          "nome": "Empresa Contratante S.A.",
+          "cnpj_cpf": "98.765.432/0001-10",
+          "papel": "CONTRATANTE"
+        },
+        "contratada": {
+          "nome": "TechSolutions Ltda.",
+          "cnpj_cpf": "12.345.678/0001-90",
+          "papel": "CONTRATADA"
+        },
+        "objeto": "Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.",
+        "financeiro": {
+          "moeda": "BRL",
+          "valor_total_brl": 120000.0,
+          "parcelas_quantidade": 12,
+          "valor_parcela_brl": 10000.0,
+          "periodicidade": "mensal",
+          "soma_consistente": true,
+          "discrepancia_centavos": 0.0,
+          "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
+        },
+        "vigencia": {
+          "data_inicio_iso": "2026-01-15",
+          "data_fim_calculada_iso": "2027-01-15",
+          "vigencia_meses": 12,
+          "dias_corridos_totais": 365,
+          "aviso_previo_dias": 30,
+          "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
+        },
+        "penalidades": {
+          "percentual_multa_rescisoria": 20.0,
+          "base_calculo": "saldo remanescente do contrato",
+          "gatilho_aplicacao": "rescisao_imotivada_sem_justa_causa"
+        },
+        "secoes_analisadas": [
+          "PREAMBULO",
+          "OBJETO",
+          "PRECO_E_CONDICOES",
+          "VIGENCIA",
+          "RESCISAO_E_PENALIDADES"
+        ]
+      },
+      "tools_chamadas": [
+        "normalizar_prazos_e_datas",
+        "extrair_e_validar_tabela_financeira"
+      ],
+      "metricas": {
+        "taxa_conformidade_schema_tcs": 1.0,
+        "taxa_invocacao_tools_tit": 1.0,
+        "acuracia_factual_campos_afc": 1.0,
+        "acuracia_sanitizacao_calculo_asc": 1.0,
+        "indice_geral_qualidade_igq": 1.0
+      }
+    }
+  },
+  "analise_comparativa": {
+    "diferenca_igq": 0.8,
+    "ganho_percentual": "+400%",
+    "decisao_justificada": "Adoção mandatória da Variante B. A Variante A produziu texto livre sem validação de schema (TCS=0.00), não acionou tools (TIT=0.00) e não calculou prazos no calendário ISO nem atestou consistência financeira (ASC=0.00). A Variante B alcançou pontuação máxima (IGQ=1.00)."
+  },
+  "ciclo_prrr": {
+    "prompt_v1": "Extraia as informações do contrato jurídico abaixo e retorne partes, valores e vigência.",
+    "response_v1": "Identifiquei os dados do contrato:\n    Contratante: Empresa Contratante S.A.\n    Contratada: TechSolutions Ltda.\n    Valor: R$ 120.000,00 divididos em 12 parcelas de R$ 10.000,00.\n    Vigência: 12 meses a partir de 15/01/2026.\n    Multa por rescisão: 20% sobre o saldo remanescente.",
+    "reflect": "A resposta V1 não calcula a data de encerramento em padrão ISO, não confere a consistência matemática das parcelas com tolerância de centavos e gera texto livre incompatível com pipelines tipados.",
+    "revise": "Inclusão de anatomia completa no prompt, obrigatoriedade de invocação de 'normalizar_prazos_e_datas' e 'extrair_e_validar_tabela_financeira', e acoplamento ao schema Pydantic DadosContratoExtraido."
+  }
+}

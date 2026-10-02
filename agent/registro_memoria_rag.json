@@ -1,0 +1,38 @@
+{
+  "sqlite_session": {
+    "session_id": "sessao_auditoria_techsolutions_01",
+    "banco_sqlite": "C:\\Users\\dudap\\OneDrive\\Área de Trabalho\\Agentes IA\\PB\\agent\\banco_memoria_contratos.db",
+    "total_mensagens_persistidas": 4,
+    "continuidade_comprovada": true,
+    "historico": [
+      {
+        "role": "user",
+        "content": "Olá, sou o Diretor Jurídico da TechSolutions. Para todas as nossas análises de contratos, grave as seguintes diretrizes estritas: 1) O teto máximo de multa rescisória tolerado é 10%. 2) É obrigatório que o foro de eleição seja a Comarca de São Paulo/SP. 3) Qualquer aditivo deve ser aprovado pelo Comitê de Governança de IA."
+      },
+      {
+        "role": "assistant",
+        "content": "Entendido, Diretor! As diretrizes da TechSolutions foram registradas com sucesso na sua sessão persistente: teto de multa rescisória fixado em no máximo 10%, foro exclusivo na Comarca de São Paulo/SP e obrigatoriedade de chancela do Comitê de Governança de IA para aditivos contratuais."
+      },
+      {
+        "role": "user",
+        "content": "Com base no alinhamento prévio da TechSolutions, quais são as nossas regras para multa rescisória e foro?"
+      },
+      {
+        "role": "assistant",
+        "content": "Conforme você determinou em nossa conversa anterior na TechSolutions: 1) O teto de multa rescisória não pode ultrapassar 10% (qualquer valor acima será apontado como irregular); 2) O foro deve ser obrigatoriamente a Comarca de São Paulo/SP; 3) Qualquer alteração contratual depende da aprovação do Comitê de Governança de IA."
+      }
+    ]
+  },
+  "rag_embeddings": {
+    "modelo_embeddings": "text-embedding-3-small",
+    "dimensao_vetores": 1536,
+    "consulta_realizada": "precedente multa rescisoria Alfa Consultoria IA",
+    "top_match": {
+      "documento_id": "PRECEDENTE-ALFA-2025-01",
+      "titulo": "Aditivo Contratual nº 1 - Alfa Consultoria em IA e TechSolutions (2025)",
+      "score_similaridade": 0.6525,
+      "conteudo_recuperado": "Em contrato anterior de desenvolvimento de IA firmado em 2025 com a Alfa Consultoria em IA S.A., a cláusula de multa rescisória de 20% foi contestada pela TechSolutions e reduzida via Termo Aditivo para 10% sobre o saldo remanescente, com fixação de aviso prévio de 30 dias e foro em São Paulo/SP."
+    },
+    "integracao_em_nova_sessao": true
+  }
+}

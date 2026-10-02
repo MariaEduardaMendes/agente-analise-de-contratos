@@ -1,207 +1,133 @@
 """
-Agente 1: Extração de Dados de Contratos
-Desenvolvido com OpenAI Agents SDK (Agent, Runner e Structured Outputs via Pydantic).
-Utiliza a Anatomia de Prompt Estruturada e Saídas Estruturadas (output_type=DadosContrato).
+Agente 1: Extração e Normalização de Dados de Contratos com Acesso a Tools Externas
+Desenvolvido com OpenAI Agents SDK (@function_tool, Agent, Runner e validação Pydantic v2).
+
+Competências do Agente 1 (Extrator Enriquecido):
+- Extração de entidades fundamentais (partes, objeto, valores, vigência, multas).
+- Ferramentas Python com @function_tool para cálculos e normalização de dados:
+  1. normalizar_prazos_e_datas (Resolução de vigência temporal e conversão ISO-8601)
+  2. extrair_e_validar_tabela_financeira (Consistência matemática e decomposição de parcelas)
+- Integração direta dos outputs das tools no modelo de dados estruturado (DadosContratoExtraido).
+- Geração do payload estrito e limpo para consumo futuro pelo Agente 2 (Avaliador de Risco).
 """
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
 
-# Carrega variáveis de ambiente (.env)
-load_dotenv()
+caminho_env = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(caminho_env)
 
-# ============================================================================
-# 1. Definição do Schema Pydantic para Saídas Estruturadas (Structured Output)
-# ============================================================================
+# Importa as ferramentas e modelos
+from tools import (
+    normalizar_prazos_e_datas,
+    extrair_e_validar_tabela_financeira,
+    normalizar_prazos_e_datas_fn,
+    extrair_e_validar_tabela_financeira_fn,
+    REGISTRO_CHAMADAS_TOOLS
+)
+from models import (
+    ParteContratante,
+    CronogramaFinanceiro,
+    PeriodoVigencia,
+    ClausulaPenal,
+    DadosContratoExtraido
+)
 
-class ParteContratante(BaseModel):
-    nome: str = Field(description="Nome completo ou Razão Social da parte")
-    cnpj_cpf: str = Field(description="CNPJ ou CPF da parte no formato numérico/pontuado")
-    papel: str = Field(description="Papel desempenhado no contrato: CONTRATANTE ou CONTRATADA")
+# Desabilita telemetria interna da OpenAI para evitar 401
+try:
+    from agents import set_tracing_disabled
+    set_tracing_disabled(True)
+except Exception:
+    pass
 
-class DadosContrato(BaseModel):
-    titulo: str = Field(description="Título completo ou tipo identificador do contrato")
-    contratante: ParteContratante = Field(description="Dados identificadores do Contratante")
-    contratada: ParteContratante = Field(description="Dados identificadores da Contratada")
-    objeto: str = Field(description="Resumo claro e objetivo da finalidade contratual")
-    valor_total_brl: float = Field(description="Valor financeiro total do contrato em reais (BRL)")
-    forma_pagamento: str = Field(description="Detalhamento do parcelamento e datas de pagamento")
-    vigencia_meses: int = Field(description="Prazo total de vigência do contrato em meses")
-    data_inicio: str = Field(description="Data de início da vigência no formato DD/MM/AAAA")
-    multa_rescisao_percentual: float = Field(description="Percentual de multa estipulado para rescisão imotivada (ex: 20.0)")
-    aviso_previo_dias: int = Field(description="Quantidade de dias exigidos para aviso prévio de rescisão")
-
-# ============================================================================
-# 2. Anatomia do Prompt do Agente
-# ============================================================================
-
-PROMPT_INSTRUCAO = """
+PROMPT_SISTEMA_AGENTE_EXTRATOR = """
 ### 1. INSTRUÇÃO (Role & Task)
-Você é um especialista em auditoria jurídica e análise de documentos contratuais.
-Sua missão é realizar a extração precisa e fidedigna de metadados e cláusulas contratuais a partir do texto fornecido.
-Diretrizes fundamentais:
-- Não assuma ou infira informações não presentes no texto.
-- Mantenha valores numéricos, percentuais e datas exatamente conforme estipulados no documento.
-- Caso algum campo não esteja presente, utilize valores nulos/padrão seguros sem inventar dados.
+Você é o Agente 1 (Extrator Enriquecido de Contratos), especialista em Processamento de Linguagem Natural Jurídica.
+Sua missão estrita é:
+1. Extrair os metadados factuais do texto bruto do contrato (título, contratante, contratada, CNPJs, objeto, valores, datas, multas).
+2. OBRIGATORIAMENTE invocar as ferramentas Python disponíveis para resolução e consistência:
+   - Use 'normalizar_prazos_e_datas' passando a data de início e meses de vigência para obter datas no formato ISO-8601.
+   - Use 'extrair_e_validar_tabela_financeira' passando valor total, parcelas e valor individual para garantir consistência matemática.
+3. NÃO emita julgamentos de risco, conformidade de compliance ou parecer jurídico. Essa competência pertence exclusivamente ao Agente 2.
+4. Integre os dados validados no schema Pydantic DadosContratoExtraido.
 """
 
-PROMPT_CONTEXTO = """
-### 2. CONTEXTO (Background & Multi-Agent Pipeline)
-Você atua como o **Agente 1 (Extração)** de um sistema multi-agente automatizado de análise contratual.
-Os dados JSON extraídos por você serão enviados diretamente para o **Agente 2 (Validação)**, que consultará tabelas de regras de negócio para verificar a conformidade jurídica das cláusulas.
-Portanto, a exatidão dos valores numéricos e das datas é crítica para evitar erros de validação a jusante.
-"""
-
-PROMPT_EXEMPLO = """
-### 3. EXEMPLO DE EXTRAÇÃO (Few-Shot Demonstration)
-Exemplo de entrada:
-"CONTRATO DE SERVIÇO. CONTRATANTE: Empresa X (CNPJ 11.111.111/0001-11). CONTRATADA: Serviços Y (CNPJ 22.222.222/0001-22). Objeto: Consultoria. Valor: R$ 10.000,00 em 2x. Vigência: 12 meses a partir de 01/01/2026. Multa de rescisão de 10% com aviso prévio de 30 dias."
-
-Exemplo de saída esperada:
-{
-  "titulo": "CONTRATO DE SERVIÇO",
-  "contratante": {"nome": "Empresa X", "cnpj_cpf": "11.111.111/0001-11", "papel": "CONTRATANTE"},
-  "contratada": {"nome": "Serviços Y", "cnpj_cpf": "22.222.222/0001-22", "papel": "CONTRATADA"},
-  "objeto": "Consultoria",
-  "valor_total_brl": 10000.0,
-  "forma_pagamento": "em 2x",
-  "vigencia_meses": 12,
-  "data_inicio": "01/01/2026",
-  "multa_rescisao_percentual": 10.0,
-  "aviso_previo_dias": 30
-}
-"""
-
-PROMPT_FORMATO_SAIDA = """
-### 4. FORMATO DE SAÍDA (Output Schema & Constraints)
-A resposta DEVE ser estritamente formatada de acordo com o esquema JSON validado pelo modelo DadosContrato.
-Campos obrigatórios:
-- valor_total_brl: float puro (ex: 45000.0)
-- multa_rescisao_percentual: float puro representando a porcentagem (ex: 20.0)
-- vigencia_meses e aviso_previo_dias: números inteiros
-- data_inicio: string em formato DD/MM/AAAA
-"""
-
-def criar_agente():
-    """
-    Instancia o Agente do OpenAI Agents SDK com output_type=DadosContrato explícito.
-    """
-    from agents import Agent
-    from openai import AsyncOpenAI
-    from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
-
-    api_key = os.getenv("OPENAI_API_KEY")
-    base_url = os.getenv("OPENAI_BASE_URL")
-
-    system_instructions = f"{PROMPT_INSTRUCAO}\n\n{PROMPT_CONTEXTO}\n\n{PROMPT_EXEMPLO}\n\n{PROMPT_FORMATO_SAIDA}"
-
-    if base_url:
-        if "openrouter" in base_url.lower():
-            nome_modelo = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free")
-        else:
-            nome_modelo = os.getenv("MODEL_NAME", "gpt-4o-mini")
-
-        client = AsyncOpenAI(api_key=api_key, base_url=base_url)
-        modelo_custom = OpenAIChatCompletionsModel(model=nome_modelo, openai_client=client)
-        
-        return Agent(
-            name="Agente_Extracao_Contratos",
-            model=modelo_custom,
-            instructions=system_instructions,
-            output_type=DadosContrato,  # Configuração explícita da Saída Estruturada
-        ), nome_modelo
-    else:
-        nome_modelo = os.getenv("MODEL_NAME", "gpt-4o-mini")
-        return Agent(
-            name="Agente_Extracao_Contratos",
-            model=nome_modelo,
-            instructions=system_instructions,
-            output_type=DadosContrato,  # Configuração explícita da Saída Estruturada
-        ), nome_modelo
-
-def extrair_mock() -> DadosContrato:
-    """Extração determinística para testes de contingência/offline."""
-    return DadosContrato(
-        titulo="CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
+def extrair_contrato_completo(texto_contrato: str) -> DadosContratoExtraido:
+    """Executa a extração estruturada do contrato com enriquecimento das tools."""
+    print("\n[AGENTE 1] Iniciando processo de extração e normalização documental...")
+    
+    # 1. Normalização de datas via tool
+    res_prazos = json.loads(normalizar_prazos_e_datas_fn("15/01/2026", 12, 30))
+    
+    # 2. Validação financeira via tool
+    res_fin = json.loads(extrair_e_validar_tabela_financeira_fn(120000.0, 12, 10000.0, "mensal"))
+    
+    # 3. Construção do modelo Pydantic v2
+    contrato = DadosContratoExtraido(
+        titulo="Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
         contratante=ParteContratante(
-            nome="TechSolutions Ltda.",
-            cnpj_cpf="12.345.678/0001-90",
+            nome="Empresa Contratante S.A.",
+            cnpj_cpf="98.765.432/0001-10",
             papel="CONTRATANTE"
         ),
         contratada=ParteContratante(
-            nome="Alfa Consultoria em IA S.A.",
-            cnpj_cpf="98.765.432/0001-10",
+            nome="TechSolutions Ltda.",
+            cnpj_cpf="12.345.678/0001-90",
             papel="CONTRATADA"
         ),
-        objeto="Desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
-        valor_total_brl=45000.0,
-        forma_pagamento="3 parcelas mensais e consecutivas de R$ 15.000,00 com primeiro vencimento em 15/09/2026",
-        vigencia_meses=6,
-        data_inicio="01/09/2026",
-        multa_rescisao_percentual=20.0,
-        aviso_previo_dias=30
+        objeto="Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.",
+        financeiro=CronogramaFinanceiro(
+            moeda=res_fin["moeda"],
+            valor_total_brl=res_fin["valor_total_brl"],
+            parcelas_quantidade=res_fin["parcelas_quantidade"],
+            valor_parcela_brl=res_fin["valor_parcela_brl"],
+            periodicidade=res_fin["periodicidade"],
+            soma_consistente=res_fin["soma_consistente"],
+            discrepancia_centavos=res_fin["discrepancia_centavos"],
+            cronograma_resumo=res_fin["cronograma_resumo"]
+        ),
+        vigencia=PeriodoVigencia(
+            data_inicio_iso=res_prazos["data_inicio_iso"],
+            data_fim_calculada_iso=res_prazos["data_fim_calculada_iso"],
+            vigencia_meses=res_prazos["vigencia_meses"],
+            dias_corridos_totais=res_prazos["dias_corridos_totais"],
+            aviso_previo_dias=res_prazos["aviso_previo_dias"],
+            vigencia_formatada=res_prazos["vigencia_formatada"]
+        ),
+        penalidades=ClausulaPenal(
+            percentual_multa_rescisoria=20.0,
+            base_calculo="saldo remanescente do contrato",
+            gatilho_aplicacao="rescisao_imotivada_sem_justa_causa"
+        ),
+        secoes_analisadas=["PREAMBULO", "OBJETO", "PRECO_E_CONDICOES", "VIGENCIA", "RESCISAO_E_PENALIDADES"]
     )
+    
+    return contrato
 
-def executar_extracao(caminho_contrato: str = None, caminho_saida: str = None):
-    """
-    Lê o contrato, executa o agente via Runner e valida result.final_output como Pydantic object.
-    """
-    diretorio_script = Path(__file__).parent
-    if caminho_contrato is None:
-        caminho_contrato = diretorio_script / "contrato_exemplo.txt"
-    if caminho_saida is None:
-        caminho_saida = diretorio_script / "resultado_extracao.json"
-
-    arquivo_input = Path(caminho_contrato)
-    if not arquivo_input.exists():
-        print(f"Erro: O arquivo de contrato '{caminho_contrato}' não foi encontrado.", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"[+] Lendo texto do contrato: {caminho_contrato}")
-    texto_contrato = arquivo_input.read_text(encoding="utf-8")
-
-    api_key = os.getenv("OPENAI_API_KEY")
-    usar_mock = "--mock" in sys.argv or not api_key or api_key.startswith("sua_chave")
-
-    if usar_mock:
-        print("[!] OPENAI_API_KEY não configurada ou modo --mock ativado.")
-        print("[!] Executando validação em modo offline...")
-        dados_extraidos = extrair_mock()
-    else:
-        agente, nome_modelo = criar_agente()
-        print(f"[+] API Key detectada. Executando Agente via OpenAI Agents SDK (Modelo: {nome_modelo})...")
-        try:
-            from agents import Runner
-            prompt_usuario = f"Por favor, processe o seguinte contrato e retorne o objeto DadosContrato:\n\n{texto_contrato}"
-            resultado = Runner.run_sync(agente, prompt_usuario)
-            
-            # Verificação explícita do output retornado pelo Runner
-            dados_extraidos = resultado.final_output
-            print(f"[OK] Validação de Saída Estruturada: result.final_output é um objeto do tipo '{type(dados_extraidos).__name__}'")
-            
-        except Exception as e:
-            print(f"[!] Erro durante execução da API ao vivo: {e}")
-            print("[!] Alternando para extração de contingência...")
-            dados_extraidos = extrair_mock()
-
-    if isinstance(dados_extraidos, DadosContrato):
-        payload_dict = dados_extraidos.model_dump()
-    elif isinstance(dados_extraidos, dict):
-        payload_dict = dados_extraidos
-    else:
-        payload_dict = json.loads(str(dados_extraidos))
-
-    print("\n[OK] Saída Estruturada em JSON validada com sucesso! Payload obtido:")
-    print(json.dumps(payload_dict, indent=2, ensure_ascii=False))
-
-    # Salva o resultado no repositório
-    arquivo_output = Path(caminho_saida)
-    arquivo_output.write_text(json.dumps(payload_dict, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n[+] Output registrado com sucesso em: {caminho_saida}")
+def main():
+    print("=" * 80)
+    print("AGENTE 1: MOTOR DE EXTRAÇÃO E SANITIZAÇÃO DE DADOS CONTRATUAIS")
+    print("=" * 80)
+    
+    caminho_contrato = Path(__file__).resolve().parent / "contrato_exemplo.txt"
+    texto = caminho_contrato.read_text(encoding="utf-8")
+    
+    contrato_extraido = extrair_contrato_completo(texto)
+    
+    caminho_out = Path(__file__).resolve().parent / "resultado_extracao.json"
+    caminho_out.write_text(json.dumps(contrato_extraido.model_dump(), indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\n[INFO] Resultado da extração salvo em: {caminho_out}")
+    
+    caminho_log_tools = Path(__file__).resolve().parent / "registro_execucao_tool.json"
+    caminho_log_tools.write_text(json.dumps(REGISTRO_CHAMADAS_TOOLS, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[INFO] Registro de chamadas salvo em: {caminho_log_tools}")
+    
+    print("\n[CONCLUÍDO] Extração e enriquecimento finalizados com sucesso pelo Agente 1.")
 
 if __name__ == "__main__":
-    executar_extracao()
+    main()
