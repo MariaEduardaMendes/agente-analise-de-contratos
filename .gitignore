@@ -14,3 +14,6 @@ __pycache__/
 # IDE & Editor
 .vscode/
 .idea/
+
+# Arquivos de entrega temporários
+*.zip
