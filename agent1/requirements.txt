@@ -2,3 +2,6 @@ openai-agents
 openai
 pydantic>=2.0.0
 python-dotenv
+fastapi>=0.110.0
+uvicorn>=0.28.0
+

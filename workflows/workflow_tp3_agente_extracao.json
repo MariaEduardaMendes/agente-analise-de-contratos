@@ -1,0 +1,110 @@
+{
+  "name": "TP3 - Integracao Agente 1 Extracao",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "130b6a4b-2489-4afc-abd0-c2dd670fa537",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.17.0.1:8001/run",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"texto_contrato\": \"CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE IA. Contratante: Empresa Contratante S.A., CNPJ 98.765.432/0001-10. Contratada: TechSolutions Ltda., CNPJ 12.345.678/0001-90. Cláusula 3ª: O valor global é de R$ 120.000,00, a ser pago em 12 parcelas mensais de R$ 10.000,00. Cláusula 5ª: A vigência é de 12 meses a partir de 15/01/2026, com aviso prévio de 30 dias. Cláusula 8ª: Multa rescisória de 20% sobre o saldo remanescente.\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "a7853446-91a6-4353-8feb-a8bcf4c6ac2d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "0eff861b-9db9-4f6d-b759-04f3ca23f369",
+      "name": "Wait",
+      "webhookId": "4023557e-64ec-41ab-b2b8-02ecd1c4d6dc"
+    },
+    {
+      "parameters": {
+        "url": "=http://172.17.0.1:8001/status/{{ $json.task_id }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "5077ad04-e8d2-48de-bb69-a48b2b52e55c",
+      "name": "HTTP Request1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fd80643b-2ae3-4201-a89f-4d332ad65b0d",
+  "meta": {
+    "instanceId": "1b16b1df538ba12dc3f97edbb85caa7050d46c148134290feba80f8236c83db9"
+  },
+  "nodeGroups": [],
+  "id": "qiYYyjB0ec6LHxLZ",
+  "tags": []
+}

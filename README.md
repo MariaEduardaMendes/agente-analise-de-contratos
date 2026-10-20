@@ -1,124 +1,157 @@
 # Sistema Multi-Agente de Análise de Contratos
 
 **Projeto de Bloco — Desenvolvimento de Agentes Inteligentes**  
+**Autora:** Maria Eduarda Mendes  
 **Repositório Oficial:** [github.com/MariaEduardaMendes/agente-analise-de-contratos](https://github.com/MariaEduardaMendes/agente-analise-de-contratos)  
-**Status da Entrega:** Protótipo Funcional Validado (TP2)
+**Status da Entrega:** Microsserviços REST FastAPI, Context Engineering e Workflow n8n (TP3)  
 
 ---
 
 ## 📖 Visão Geral
 
-Este projeto implementa um **ecossistema multi-agente autônomo** para auditoria jurídica e extração estruturada de contratos de tecnologia e inteligência artificial. O sistema evoluiu de um script simples com LLM para um agente corporativo funcional, dotado de:
+Este projeto implementa um **sistema multi-agente assíncrono e desacoplado** para extração estruturada e auditoria de governança em contratos jurídicos.
 
-1. **Ferramentas Externas (`@function_tool`):** Normalização temporal da vigência contratual (ISO-8601) e verificação matemática da consistência de parcelas e valor global.
-2. **Pipelines de Raciocínio Encadeado:** Decomposição estrutural documental através de *Least-to-Most Prompting* e resolução factual passo a passo via *Chain-of-Thought (CoT)*.
-3. **Memória Persistente em Duas Camadas:** Continuidade conversacional com `SQLiteSession` do OpenAI Agents SDK e recuperação semântica vetorial (RAG) de precedentes históricos com embeddings de 1536 dimensões (`text-embedding-3-small`).
-4. **Saídas Fortemente Tipadas:** Validação estrutural de ponta a ponta com **Pydantic v2** (`DadosContratoExtraido`), combinando ferramentas Python e `output_type` no mesmo agente.
-5. **Avaliação Sistemática de Prompts:** Benchmark comparativo de variantes (A/B) com métricas quantitativas e aplicação do ciclo *Prompt-Response-Reflect-Revise (PRRR)* (+400% no Índice Geral de Qualidade).
+Na fase **TP3**, o sistema foi reestruturado em **dois microsserviços REST independentes** orquestrados deterministicamente via **n8n**:
 
----
+1. **Agente 1 (Extrator Enriquecido — `agent1/`):**
+   - Microsserviço FastAPI na porta `8001`.
+   - Extrai entidades e aciona ferramentas Python determinísticas para normalização de datas no padrão ISO-8601 (`normalizar_prazos_e_datas`) e conferência matemática de parcelas (`extrair_e_validar_tabela_financeira`).
+   - Responde com `POST /run` retornando `202 Accepted` com `task_id` e execução assíncrona via `BackgroundTasks`.
+   - Saída tipada via Pydantic v2 (`DadosContratoExtraido`).
+   - Contexto exclusivo definido em `agent1/CLAUDE.md`.
 
-## 🎥 Vídeo de Demonstração (Pitch Técnico)
+2. **Agente 2 (Avaliador de Conformidade e Risco — `agent2/`):**
+   - Microsserviço FastAPI na porta `8002`.
+   - Recebe os dados estruturados do contrato repassados pelo orquestrador e confronta com as diretrizes corporativas (`auditar_parametros_contratuais_fn` e `consultar_base_regras_negocio_fn`).
+   - Calcula score de conformidade (0 a 100), classifica o nível de risco (`BAIXO`, `MEDIO`, `ALTO`, `CRITICO`) e emite parecer executivo estruturado em Pydantic v2 (`RelatorioConformidade`).
+   - Responde com `POST /run` (202 Accepted) e polling em `GET /status/{task_id}` via `BackgroundTasks`.
+   - Contexto exclusivo definido em `agent2/CLAUDE.md`.
 
-Confira a apresentação em vídeo (até 5 minutos) demonstrando o Agente 1 em execução e explicando as principais decisões técnicas, ferramentas de cálculo, persistência e validação:
+3. **Orquestração Determinística via n8n (`workflows/`):**
+   - Primeiro workflow implementado conectando o nó de entrada HTTP ao Agente 1, com captura assíncrona do payload estruturado (`workflows/workflow_tp3_agente_extracao.json`).
 
-- 🔗 **Link do Vídeo (YouTube):** [https://youtu.be/k16KZ5CjcuE](https://youtu.be/k16KZ5CjcuE)
-
----
-
-## 🏛️ Arquitetura do Sistema (Os 9 Componentes)
-
-O sistema opera sob orquestração de fluxos assíncronos no **n8n** conectando microsserviços em Python construídos com o **OpenAI Agents SDK**:
-
-![Diagrama de Arquitetura](diagrama.png)
-
-> Para detalhes completos dos 9 componentes, gatilhos, fontes de dados e diagrama de sequência, consulte [`diagrama.md`](diagrama.md) e o [`RELATORIO_TECNICO.md`](RELATORIO_TECNICO.md).
+4. **Pipeline de Prompts Consolidado (`evaluation/`):**
+   - Documento formal avaliando 4 variantes com métricas objetivas (TCS, TIT, AFC, ASC, IGQ), ganho de +566% e diagnóstico sistemático de falhas (`evaluation/PIPELINE_PROMPTS_CONSOLIDADO.md`).
 
 ---
 
-## 📁 Estrutura do Repositório
+## 🎥 Vídeo de Demonstração (Pitch Técnico do TP3)
 
-```text
-PB/
-├── agent/                                  # Código-fonte funcional do agente e demonstrações
-│   ├── tools.py                            # Implementação das ferramentas (@function_tool)
-│   ├── memoria_rag.py                      # SQLiteSession (SessionABC) e pipeline RAG com embeddings
-│   ├── pipeline_raciocinio.py              # Execução encadeada (Least-to-Most + Chain-of-Thought)
-│   ├── demo_saida_tipada.py                # Agente combinando tools + output_type (Pydantic v2)
-│   ├── demo_memoria_rag.py                 # Demonstração de persistência entre runs e cross-session
-│   ├── agente_extracao.py                  # Agente de extração inicial
-│   ├── contrato_exemplo.txt                # Minuta contratual de teste (serviços de IA)
-│   ├── banco_memoria_contratos.db          # Banco SQLite persistente (sessões e vetores)
-│   ├── output_etapa1_decomposicao.json     # Output da Etapa 1 do pipeline encadeado
-│   ├── output_etapa2_cot.json              # Output da Etapa 2 do pipeline encadeado
-│   ├── resultado_pipeline_raciocinio.json  # Output final consolidado do pipeline
-│   ├── parecer_auditoria_raciocinio.md     # Parecer executivo final gerado pelo agente
-│   ├── registro_execucao_tool.json         # Log auditável da execução de tools
-│   ├── registro_memoria_rag.json           # Evidência de continuidade e busca RAG
-│   ├── resultado_saida_tipada.json         # JSON tipado validado via Pydantic
-│   └── resultado_extracao.json             # Saída de extração integrada
-│
-├── prompts/                                # Prompts encadeados e documentação anatômica
-│   ├── prompts_encadeados.md               # Sequência das etapas com outputs intermediários
-│   ├── prompts_anatomia.md                 # Anatomia do prompt principal
-│   ├── saidas_estruturadas.md              # Documentação das saídas estruturadas
-│   ├── output_etapa1_decomposicao.json     # Cópia documentada da Etapa 1
-│   ├── output_etapa2_cot.json              # Cópia documentada da Etapa 2
-│   └── resultado_pipeline_raciocinio.json  # Cópia documentada do resultado final
-│
-├── evaluation/                             # Avaliação A/B e ciclo PRRR
-│   ├── avaliacao_metricas_prompt.py        # Benchmark automatizado das métricas
-│   ├── comparativo_variantes_prrr.md       # Análise comparativa e ciclo PRRR
-│   └── resultado_avaliacao_metricas.json   # Relatório quantitativo medido (TCS, TIT, AFC, ARA, IGQ)
-│
-├── spec/                                   # Especificações técnicas e conceituais
-│   ├── implementacao_ferramentas.md        # Especificação detalhada das tools
-│   ├── pipeline_raciocinio_etapas.md       # Especificação do encadeamento Least-to-Most / CoT
-│   ├── memoria_persistente_rag.md          # Especificação de SQLiteSession e RAG
-│   ├── saidas_tipadas_pydantic.md          # Especificação da validação Pydantic v2
-│   ├── avaliacao_metricas_prompts.md       # Especificação metodológica das métricas
-│   └── especificacao_projeto.md            # Especificação arquitetural global
-│
-├── diagrama.md                             # Documento com a descrição dos 9 componentes e fluxo
-├── diagrama.png                            # Imagem oficial da arquitetura do sistema
-├── RELATORIO_TECNICO.md                    # Relatório técnico consolidado da entrega TP2
-└── README.md                               # Este arquivo de documentação do repositório
+Demonstração prática dos dois microsserviços em execução separada, validação dos endpoints REST via Swagger/cURL, orquestração no n8n e justificativas das decisões de arquitetura e Context Engineering:
+
+> 🔗 **Link direto do YouTube:** [https://youtu.be/UsQMdx9zVFo](https://youtu.be/UsQMdx9zVFo)
+
+
+---
+
+## 🏛️ Arquitetura do Sistema
+
+```
+┌─────────────────┐      HTTP POST /run       ┌────────────────────────┐
+│                 │ ────────────────────────> │   Agente 1 (FastAPI)   │
+│                 │ <──────────────────────── │   Porta 8001 (/run)    │
+│                 │      202 Accepted         └────────────────────────┘
+│                 │                                        │ BackgroundTask
+│                 │      HTTP GET /status                  ▼
+│       n8n       │ ────────────────────────> ┌────────────────────────┐
+│  Orquestrador   │ <──────────────────────── │   Status: 'done'       │
+│  Determinístico │      Payload Extraído     │   DadosContratoExtraido│
+│                 │                           └────────────────────────┘
+│                 │
+│                 │      HTTP POST /run       ┌────────────────────────┐
+│                 │ ────────────────────────> │   Agente 2 (FastAPI)   │
+│                 │ <──────────────────────── │   Porta 8002 (/run)    │
+│                 │      202 Accepted         └────────────────────────┘
+│                 │                                        │ BackgroundTask
+│                 │      HTTP GET /status                  ▼
+│                 │ ────────────────────────> ┌────────────────────────┐
+│                 │ <──────────────────────── │   Status: 'done'       │
+│                 │      Relatório Risco      │   RelatorioConformidade│
+└─────────────────┘                           └────────────────────────┘
 ```
 
 ---
 
-## 🚀 Como Executar as Demonstrações
+## 📁 Estrutura do Repositório (TP3)
+
+```text
+agente-analise-de-contratos/
+├── RELATORIO_TECNICO.md            # Relatório Técnico Unificado Oficial da Entrega
+├── README.md                       # Documentação geral do repositório
+│
+├── agent1/                         # PRIMEIRO AGENTE (Extrator Enriquecido de Contratos)
+│   ├── CLAUDE.md                   # Contexto e regras exclusivas do Agente 1
+│   ├── main.py                     # Microsserviço FastAPI (Porta 8001) com BackgroundTasks
+│   ├── agente_extracao.py          # Pipeline central de extração estruturada
+│   ├── tools.py                    # Ferramentas Python de normalização temporal e matemática
+│   ├── models.py                   # Schemas Pydantic v2 (DadosContratoExtraido)
+│   ├── memoria_rag.py              # Memória de sessão SQLite e RAG vetorial
+│   ├── contrato_exemplo.txt        # Minuta jurídica de homologação
+│   ├── test_api.py                 # Testes automatizados dos endpoints REST
+│   └── requirements.txt            # Dependências específicas do Agente 1
+│
+├── agent2/                         # SEGUNDO AGENTE (Avaliador de Conformidade e Risco)
+│   ├── CLAUDE.md                   # Contexto e regras exclusivas do Agente 2
+│   ├── main.py                     # Microsserviço FastAPI (Porta 8002) com BackgroundTasks
+│   ├── agente_auditoria.py         # Motor de auditoria contra regras corporativas
+│   ├── tools.py                    # Ferramentas Python de checagem de alçadas e multas
+│   ├── models.py                   # Schemas Pydantic v2 (RelatorioConformidade)
+│   ├── test_api.py                 # Testes automatizados dos endpoints REST
+│   └── requirements.txt            # Dependências específicas do Agente 2
+│
+├── workflows/                      # WORKFLOWS DO N8N
+│   └── workflow_tp3_agente_extracao.json # Workflow oficial homologado no n8n
+│
+├── evaluation/                     # PIPELINE DE PROMPTS E AVALIAÇÃO
+│   └── PIPELINE_PROMPTS_CONSOLIDADO.md # Benchmark, diagnóstico e decisão final técnica
+│
+├── integration/                    # CONTRATOS DE INTERFACE E APIS
+│   └── contrato_api_agentes.md     # Especificação técnica dos endpoints, schemas e estados
+│
+└── docs/                           # DOCUMENTAÇÃO AUXILIAR
+    ├── CONFIGURACAO_AMBIENTE.md    # Detalhamento do ambiente Antigravity + Claude Code
+    └── screenshots/                # Evidências visuais de execução
+```
+
+---
+
+## 🚀 Como Executar os Microsserviços e Testes
 
 ### Pré-requisitos
-- Python 3.10+
-- Ambiente virtual configurado com dependências do OpenAI Agents SDK e Pydantic v2:
+- Python 3.10+ (recomendado `.venv` ativo)
+- Dependências instaladas:
   ```bash
-  pip install openai-agents pydantic python-dotenv requests
+  pip install fastapi uvicorn pydantic python-dotenv requests
   ```
-- Variáveis de ambiente configuradas no arquivo `.env` (ex: chave de API do OpenRouter / OpenAI).
 
-### Execução dos Componentes:
+### 1. Iniciar os Serviços REST:
 
-1. **Demonstração de Saída Tipada com Tools (`agent/demo_saida_tipada.py`):**
-   ```bash
-   python agent/demo_saida_tipada.py
-   ```
-   *Combina chamadas autônomas de tools (`normalizar_prazos_e_datas` e `extrair_e_validar_tabela_financeira`) com schema Pydantic `output_type=DadosContratoExtraido`.*
+- **Agente 1 (Extração de Contratos):**
+  ```powershell
+  uvicorn agent1.main:app --host 0.0.0.0 --port 8001 --reload
+  ```
+  *Swagger interativo: `http://localhost:8001/docs`*
 
-2. **Pipeline de Raciocínio Encadeado (`agent/pipeline_raciocinio.py`):**
-   ```bash
-   python agent/pipeline_raciocinio.py
-   ```
-   *Executa as 3 etapas de raciocínio encadeado (Least-to-Most + Chain-of-Thought) e gera os arquivos intermediários e o parecer final.*
+- **Agente 2 (Conformidade e Risco):**
+  ```powershell
+  uvicorn agent2.main:app --host 0.0.0.0 --port 8002 --reload
+  ```
+  *Swagger interativo: `http://localhost:8002/docs`*
 
-3. **Memória de Sessão e Busca RAG (`agent/demo_memoria_rag.py`):**
-   ```bash
-   python agent/demo_memoria_rag.py
-   ```
-   *Demonstra a persistência de diretrizes entre runs distintos via `SQLiteSession` e recuperação de precedentes em sessão nova via RAG.*
+### 2. Executar Testes Automatizados dos Endpoints:
 
-4. **Benchmark de Avaliação e Ciclo PRRR (`evaluation/avaliacao_metricas_prompt.py`):**
-   ```bash
-   python evaluation/avaliacao_metricas_prompt.py
-   ```
-   *Mede o Índice Geral de Qualidade (IGQ) comparando a Variante A (Prompt Básico) e a Variante B (Estruturado + Tools).*
+- Testar Agente 1 (`POST /run` e `GET /status`):
+  ```powershell
+  python agent1/test_api.py
+  ```
+
+- Testar Agente 2 (`POST /run` e `GET /status`):
+  ```powershell
+  python agent2/test_api.py
+  ```
+
+### 3. Importar o Workflow no n8n:
+1. Abra o n8n no navegador (`http://localhost:5678`).
+2. Clique no menu superior direito do editor de workflows e selecione **"Import from File"**.
+3. Escolha o arquivo [`workflows/workflow_tp3_agente_extracao.json`](workflows/workflow_tp3_agente_extracao.json).
+4. Clique em **"Execute Workflow"** para validar o acionamento HTTP e a captura de status assíncrona.
