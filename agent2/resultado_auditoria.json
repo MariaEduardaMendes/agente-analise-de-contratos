@@ -1,0 +1,23 @@
+{
+  "contrato_titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
+  "score_conformidade": 85.0,
+  "nivel_risco_geral": "BAIXO",
+  "total_regras_auditadas": 5,
+  "itens_conformes": 3,
+  "itens_alerta": 1,
+  "itens_nao_conformes": 1,
+  "itens_auditados": [
+    {
+      "regra": "Valor total consistente com soma de parcelas",
+      "status": "CONFORME",
+      "nivel_risco": "BAIXO",
+      "descricao_analise": "O contrato prevê 3 parcelas de R$ 15.000,00, totalizando R$ 45.000,00, conforme informado.",
+      "fundamentacao": "Soma consistente em 100%, sem arredondamento."
+    }
+  ],
+  "recomendacoes_mitigacao": [
+    "Manter controle de vencimentos das parcelas para evitar atrasos.",
+    "Em caso de rescisão antecipada, considerar o impacto da multa de 20% sobre o valor remanescente."
+  ],
+  "parecer_executivo_markdown": "# Parecer Executivo – Conformidade Contratual\n\n**Contrato:** CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\n\n**Resumo:** A auditoria identificou 3 itens em conformidade, 1 alerta e 1 não conformidade. OScore de compliance do fornecedor está em 85, classificando o risco como baixo. As principais observações relacionam-se ao cálculo de multa rescisória e ao aviso prévio. Recomenda‑se atenção ao procedimento de rescisão e ao monitoramento de pagamentos.\n\n## Pontos Fortes\n- Soma financeira consistente (R$ 45.000,00).\n- Fornecedor homologado com situação cadastral ativa.\n- Risco baixo atribuído pela categoria \"baixo\".\n\n## Pontos de Atenção\n- Multa rescisória de 20% sobre o valor remanescente caso haja rescisão imotivada antes do término do prazo.\n- Aviso prévio de 30 dias não está explícitamente vinculado a cláusulas de renovação ou término, recomendando revisão contratual.\n\n## Recomendações\n1. **Controle de Pagamentos:** Garantir que as três parcelas mensais de R$ 15.000,00 sejam efetuadas dentro dos prazos estipulados (primeira em 15/09/2026).\n2. **Revisão da Cláusula de Rescisão:** Confirmar se o aviso prévio de 30 dias é suficiente ou se há necessidade de adequação contratual para evitar penalidades inesperadas.\n3. **Monitoramento de Conformidade:** Manter o score de compliance do fornecedor acima de 80 por meio de relatórios periódicos.\n\n*Este parecer tem caráter orientador e deve ser lido em conjunto com o contrato completo e a assessoria jurídica da empresa.*"
+}

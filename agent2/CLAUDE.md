@@ -38,15 +38,20 @@ agent2/
 
 ## 3. Ferramentas Python Integradas (`tools.py`)
 
-1. **`auditar_parametros_contratuais_fn`**:
-   - *Finalidade:* Realiza a auditoria determinística de parâmetros contratuais contra as diretrizes corporativas:
+1. **`auditar_parametros_contratuais` (`@function_tool`)**:
+   - *Finalidade:* Realiza a auditoria determinística de parâmetros contratuais contra as diretrizes corporativas, acionada diretamente pelo Agent via OpenAI Agents SDK:
      - Teto de multa rescisória (alerta caso supere 10.0%).
      - Limite de alçada para aprovação financeira (exige ratificação da Diretoria Executiva acima de R$ 100.000,00).
      - Prazo mínimo de aviso prévio (mínimo de 30 dias).
-   - *Assinatura:* `(valor_total_brl: float, vigencia_meses: int, aviso_previo_dias: int, percentual_multa: float) -> Dict[str, Any]`
+     - Verificação da regularidade cadastral e score de compliance na fonte estruturada de fornecedores.
+   - *Assinatura:* `(valor_total_brl: float, vigencia_meses: int, aviso_previo_dias: int, percentual_multa: float, situacao_fornecedor: str = "ATIVA", score_compliance_fornecedor: float = 90.0) -> str (JSON)`
 
 2. **`consultar_base_regras_negocio_fn`**:
    - *Finalidade:* Fornece os parâmetros vigentes da política interna de riscos e compliance.
+
+3. **Arquitetura do Agente 2:**
+   - Instanciado como `Agent(name="AgenteAuditoriaRisco", tools=[auditar_parametros_contratuais], output_type=RelatorioConformidade)`.
+   - Executa via `Runner.run` para interpretar o diagnóstico da tool, classificar o risco e redigir o parecer executivo em Markdown.
 
 ---
 

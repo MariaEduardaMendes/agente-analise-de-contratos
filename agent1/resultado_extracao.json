@@ -1,44 +1,52 @@
 {
-  "titulo": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
+  "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
   "contratante": {
-    "nome": "Empresa Contratante S.A.",
-    "cnpj_cpf": "98.765.432/0001-10",
+    "nome": "TechSolutions Ltda.",
+    "cnpj_cpf": "12.345.678/0001-90",
     "papel": "CONTRATANTE"
   },
   "contratada": {
-    "nome": "TechSolutions Ltda.",
-    "cnpj_cpf": "12.345.678/0001-90",
+    "nome": "Alfa Consultoria em IA S.A.",
+    "cnpj_cpf": "98.765.432/0001-10",
     "papel": "CONTRATADA"
   },
-  "objeto": "Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.",
+  "objeto": "prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos",
   "financeiro": {
     "moeda": "BRL",
-    "valor_total_brl": 120000.0,
-    "parcelas_quantidade": 12,
-    "valor_parcela_brl": 10000.0,
+    "valor_total_brl": 45000.0,
+    "parcelas_quantidade": 3,
+    "valor_parcela_brl": 15000.0,
     "periodicidade": "mensal",
     "soma_consistente": true,
     "discrepancia_centavos": 0.0,
-    "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
+    "cronograma_resumo": "3 parcelas mensais de R$ 15.000,00, primeira em 15/09/2026"
   },
   "vigencia": {
-    "data_inicio_iso": "2026-01-15",
-    "data_fim_calculada_iso": "2027-01-15",
-    "vigencia_meses": 12,
-    "dias_corridos_totais": 365,
+    "data_inicio_iso": "2026-09-01T00:00:00-03:00",
+    "data_fim_calculada_iso": "2027-03-01T00:00:00-03:00",
+    "vigencia_meses": 6,
+    "dias_corridos_totais": 184,
     "aviso_previo_dias": 30,
-    "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
+    "vigencia_formatada": "01/09/2026 a 01/03/2027"
   },
   "penalidades": {
     "percentual_multa_rescisoria": 20.0,
-    "base_calculo": "saldo remanescente do contrato",
-    "gatilho_aplicacao": "rescisao_imotivada_sem_justa_causa"
+    "base_calculo": "valor remanescente do contrato",
+    "gatilho_aplicacao": "rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado"
+  },
+  "fornecedor_homologado": {
+    "cnpj": "98.765.432/0001-10",
+    "razao_social": "Alfa Consultoria em IA S.A.",
+    "situacao_cadastral": "APTO",
+    "score_compliance": 85.0,
+    "limite_alcada_brl": 50000.0,
+    "categoria_risco": "baixo",
+    "restricoes_juridicas": null
   },
   "secoes_analisadas": [
-    "PREAMBULO",
-    "OBJETO",
-    "PRECO_E_CONDICOES",
-    "VIGENCIA",
-    "RESCISAO_E_PENALIDADES"
+    "objeto",
+    "financeiro",
+    "vigencia",
+    "rescisao e multa"
   ]
 }

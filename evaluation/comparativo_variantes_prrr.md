@@ -1,6 +1,6 @@
 # Avaliação de Variantes de Prompt e Ciclo Prompt-Response-Reflect-Revise (evaluation/)
 
-Este diretório contém a avaliação sistemática da qualidade de prompts para o **Agente 1 (Extrator Enriquecido)**, detalhando o benchmark comparativo A/B, critérios objetivos de decisão e a aplicação do ciclo metodológico **Prompt-Response-Reflect-Revise (PRRR)**.
+Este diretório contém a avaliação sistemática da qualidade de prompts para o **Agente 1 (Extrator Enriquecido)**, detalhando o benchmark comparativo A/B com **execuções 100% REAIS** via modelo LLM (`nvidia/nemotron-3.5-lightning:free` via OpenRouter e OpenAI Agents SDK), critérios objetivos de decisão e a aplicação do ciclo metodológico **Prompt-Response-Reflect-Revise (PRRR)**.
 
 ---
 
@@ -19,27 +19,27 @@ $$\text{IGQ} = (0.30 \times \text{TCS}) + (0.30 \times \text{TIT}) + (0.20 \time
 
 ---
 
-## ⚖️ 2. Comparativo de Variantes (Benchmark A/B)
+## ⚖️ 2. Comparativo de Variantes (Benchmark A/B Real)
 
-O benchmark foi aplicado sobre o documento [`agent/contrato_exemplo.txt`](../agent/contrato_exemplo.txt):
+O benchmark foi executado pelo script [`evaluation/avaliacao_metricas_prompt.py`](avaliacao_metricas_prompt.py) sobre a minuta real [`agent1/contrato_exemplo.txt`](../agent1/contrato_exemplo.txt):
 
 ### 2.1 Descrição das Variantes Testadas
-- **Variante A (Prompt Monolítico / Não Estruturado):** Prompt básico solicitando extração em texto livre, sem validação de schema e sem ativação de tools.
-- **Variante B (Prompt Anatômico + CoT + Tools + Pydantic v2):** Prompt com anatomia em 4 componentes (Instrução, Contexto, Exemplos e Restrições de Schema), invocação mandatória de tools e validação por `output_type`.
+- **Variante A (Prompt Monolítico / Não Estruturado):** Prompt básico solicitando extração em texto livre via OpenAI Chat Completions, sem validação de schema e sem ativação de tools.
+- **Variante B (Prompt Estruturado + CoT + Tools + Pydantic v2):** Prompt com anatomia em 4 componentes (Instrução, Contexto, Exemplos e Restrições de Schema), executado via `Runner.run` com invocação mandatória de tools (`@function_tool`) e validação por `output_type=DadosContratoExtraido`.
 
-### 2.2 Tabela Comparativa de Resultados
+### 2.2 Tabela Comparativa de Resultados Reais
 
-| Métrica | Variante A (Prompt Básico) | Variante B (Prompt Estruturado + Tools) | Ganho |
+| Métrica | Variante A (Prompt Básico / LLM Real) | Variante B (Agente Estruturado + Tools / Runner.run) | Ganho |
 | :--- | :---: | :---: | :---: |
 | **TCS (Schema Adherence)** | `0.00` | `1.00` | **+1.00** |
 | **TIT (Tool Invocation)** | `0.00` | `1.00` | **+1.00** |
-| **AFC (Acurácia Factual)** | `0.50` | `1.00` | **+0.50** |
+| **AFC (Acurácia Factual)** | `1.00` | `1.00` | **0.00** |
 | **ASC (Sanitização e Cálculo)** | `0.00` | `1.00` | **+1.00** |
 | **Índice Geral de Qualidade (IGQ)** | **`0.200`** | **`1.000`** | **+0.800 (+400%)** |
 
 ### 2.3 Registro da Decisão com Justificativa
 > **Decisão Final:** Adoção definitiva da **Variante B**.  
-> **Justificativa:** A Variante A gerou texto livre não tipado, não ativou as ferramentas de normalização temporal e cálculo financeiro, e não calculou a data de término no calendário internacional. A Variante B atingiu 100% de conformidade técnica (IGQ = 1.000), garantindo um contrato de dados limpo e sanitizado para o Agente 2.
+> **Justificativa Técnica:** Embora o modelo em texto livre (Variante A) tenha identificado os termos no texto (AFC=1.00), gerou uma resposta em prosa completamente incompatível com integrações de microsserviços (TCS=0.00), não acionou tools (TIT=0.00) e não calculou a data de encerramento no calendário ISO-8601 nem verificou a consistência algébrica das parcelas (ASC=0.00). A Variante B alcançou pontuação máxima (IGQ = 1.000), garantindo um contrato de dados limpo, sanitizado e enriquecido com o cadastro de fornecedores para o Agente 2.
 
 ---
 
@@ -53,36 +53,39 @@ O benchmark foi aplicado sobre o documento [`agent/contrato_exemplo.txt`](../age
 └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
 ```
 
-### 1. Prompt (V1 - Inicial)
+### 1. Prompt (V1 - Monolítico)
 ```text
-Extraia as informações do contrato jurídico abaixo e retorne partes, valores e vigência.
+Você é um assistente geral. Extraia os dados do contrato abaixo e escreva um resumo livre com o título, partes envolvidas, valores, prazos e penalidades:
+[texto de agent1/contrato_exemplo.txt]
 ```
 
-### 2. Response (Produzida pela V1)
+### 2. Response (Produzida pelo Modelo Real na V1)
 ```text
-Identifiquei os dados do contrato:
-Contratante: Empresa Contratante S.A.
-Contratada: TechSolutions Ltda.
-Valor: R$ 120.000,00 divididos em 12 parcelas de R$ 10.000,00.
-Vigência: 12 meses a partir de 15/01/2026.
-Multa por rescisão: 20% sobre o saldo remanescente.
+**Resumo do Contrato – Prestação de Serviços de Desenvolvimento de Inteligência Artificial**
+**Partes envolvidas:** TechSolutions Ltda. e Alfa Consultoria em IA S.A.
+**Valores:** R$ 45.000,00 distribuídos em 3 parcelas de R$ 15.000,00 com vencimento em 15/09/2026.
+**Prazos:** Vigência de 6 meses, com início em 01/09/2026 e término em 01/03/2027.
+**Penalidades:** Aviso prévio de 30 dias e multa compensatória de 20% do valor remanescente.
 ```
 
 ### 3. Reflect (Diagnóstico Crítico das Falhas da V1)
-1. **Ausência de Normalização de Datas:** O modelo apenas repetiu "12 meses a partir de 15/01/2026", sem calcular a data de término no padrão ISO-8601 (`2027-01-15`) nem o número total de dias corridos.
-2. **Falta de Validação Matemática:** O modelo não conferiu algebricamente se `12 x 10.000 == 120.000` para garantir a integridade financeira.
-3. **Quebra de Integração Tipada:** A resposta em texto corrido não respeita nenhum schema Pydantic, inviabilizando o consumo automático pelo pipeline do n8n / Agente 2.
+1. **Ausência de Normalização de Datas:** O modelo gerou texto corrido informal sem computar os dias corridos exatos nem disponibilizar chaves estruturadas no formato ISO-8601 (`YYYY-MM-DD`).
+2. **Falta de Verificação Algébrica Independente:** O modelo fez leitura textual passiva sem conferência determinística de arredondamentos monetários por função externa.
+3. **Inviabilidade de Consumo Downstream:** Uma saída em Markdown livre quebra pipelines orientados a serviços (APIs REST e nós n8n) por não garantir tipagem estrita de campos.
 
-### 4. Revise (Revisão para o Prompt V2 e Sucesso da Execução)
-O prompt foi reestruturado com **Anatomia Anatômica**, **Imposição Mandatória de Tools de Cálculo** e **Vinculação ao Schema Pydantic v2**:
+### 4. Revise (Revisão para o Prompt V2 e Sucesso da Execução com Tools e Pydantic)
+O prompt foi reestruturado com **Anatomia Anatômica em 4 Componentes**, **Delegação Mandatória para Tools Python (@function_tool)** e **Acoplamento a `output_type=DadosContratoExtraido`**:
 
 ```text
 ### 1. INSTRUÇÃO (Role & Task)
-Você é o Agente 1 (Extrator Enriquecido de Contratos).
-Sua missão é extrair os metadados factuais da minuta e acionar as ferramentas de resolução:
-1. Invocar 'normalizar_prazos_e_datas' passando data de início e meses de vigência.
-2. Invocar 'extrair_e_validar_tabela_financeira' para atestar a consistência matemática das parcelas.
-3. Formatar a saída estritamente segundo o schema DadosContratoExtraido.
+Você é o Agente 1 (Extrator Enriquecido de Contratos), especialista em Processamento de Linguagem Natural Jurídica.
+Sua missão estrita é:
+1. Extrair os metadados factuais do texto bruto do contrato (título, partes, CNPJs, objeto, valores, datas, multas).
+2. OBRIGATORIAMENTE invocar as ferramentas Python disponíveis:
+   - 'normalizar_prazos_e_datas' para datas ISO-8601 e dias corridos.
+   - 'extrair_e_validar_tabela_financeira' para consistência matemática das parcelas.
+   - 'consultar_cadastro_fornecedor' para enriquecimento cadastral na fonte corporativa.
+3. NÃO emita julgamentos de risco; popule DadosContratoExtraido.
 ```
 
-- **Resultado da V2:** Objeto Pydantic v2 gerado com 100% de aderência de schema (TCS = 1.0), invocação autônoma de todas as tools (TIT = 1.0) e data final e parcelas conferidas (ASC = 1.0).
+- **Resultado Real da V2 via Runner.run:** Objeto Pydantic v2 validado (TCS = 1.0), invocação de tools com execução rastreada (TIT = 1.0), exatidão factual total (AFC = 1.0) e sanitização computacional plena (ASC = 1.0), atingindo **IGQ = 1.000**.

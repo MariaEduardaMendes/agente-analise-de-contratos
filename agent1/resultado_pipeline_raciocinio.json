@@ -1,40 +1,49 @@
 {
   "status_extracao": "SUCESSO_VALIDADO",
   "contrato_extraido": {
-    "titulo": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
+    "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
     "contratante": {
-      "nome": "Empresa Contratante S.A.",
-      "cnpj_cpf": "98.765.432/0001-10",
+      "nome": "TechSolutions Ltda.",
+      "cnpj_cpf": "12.345.678/0001-90",
       "papel": "CONTRATANTE"
     },
     "contratada": {
-      "nome": "TechSolutions Ltda.",
-      "cnpj_cpf": "12.345.678/0001-90",
+      "nome": "Alfa Consultoria em IA S.A.",
+      "cnpj_cpf": "98.765.432/0001-10",
       "papel": "CONTRATADA"
     },
-    "objeto": "Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.",
+    "objeto": "CLÁUSULA PRIMEIRA - DO OBJETO: O presente contrato tem por objeto a prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
     "financeiro": {
       "moeda": "BRL",
-      "valor_total_brl": 120000.0,
-      "parcelas_quantidade": 12,
-      "valor_parcela_brl": 10000.0,
+      "valor_total_brl": 45000.0,
+      "parcelas_quantidade": 3,
+      "valor_parcela_brl": 15000.0,
       "periodicidade": "mensal",
       "soma_consistente": true,
       "discrepancia_centavos": 0.0,
-      "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
+      "cronograma_resumo": "Parcelamento validado."
     },
     "vigencia": {
-      "data_inicio_iso": "2026-01-15",
-      "data_fim_calculada_iso": "2027-01-15",
-      "vigencia_meses": 12,
-      "dias_corridos_totais": 365,
+      "data_inicio_iso": "2026-09-01",
+      "data_fim_calculada_iso": "2027-03-01",
+      "vigencia_meses": 6,
+      "dias_corridos_totais": 182,
       "aviso_previo_dias": 30,
-      "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
+      "vigencia_formatada": "01/09/2026 a 01/03/2027"
     },
     "penalidades": {
       "percentual_multa_rescisoria": 20.0,
       "base_calculo": "saldo remanescente do contrato",
       "gatilho_aplicacao": "rescisao_imotivada_sem_justa_causa"
+    },
+    "fornecedor_homologado": {
+      "cnpj": "98.765.432/0001-10",
+      "razao_social": "Alfa Consultoria em IA S.A.",
+      "situacao_cadastral": "ATIVA",
+      "score_compliance": 88.5,
+      "limite_alcada_brl": 150000.0,
+      "categoria_risco": "MEDIO",
+      "restricoes_juridicas": "Histórico de renegociação de multa rescisória em aditivo prévio (2025). Homologada com ressalva contratual."
     },
     "secoes_analisadas": [
       "PREAMBULO_QUALIFICACAO",
@@ -45,52 +54,55 @@
     ]
   },
   "etapa1_decomposicao": {
-    "titulo_documento": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
+    "titulo_documento": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
     "total_secoes_identificadas": 5,
     "secoes": [
       {
         "secao": "PREAMBULO_QUALIFICACAO",
-        "texto_original_relevante": "EMPRESA CONTRATANTE S.A., CNPJ 98.765.432/0001-10... e TECHSOLUTIONS LTDA., CNPJ 12.345.678/0001-90",
+        "texto_original_relevante": "CONTRATANTE: TechSolutions Ltda., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 12.345.678/0001-90, com sede na Av. Paulista, nº 1000, São Paulo/SP; e, de outro lado: CONTRATADA: Alfa Consultoria em IA S.A., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 98.765.432/0001-10, com sede na Rua da Inovação, nº 500, Florianópolis/SC",
         "entidades_brutas_identificadas": {
-          "contratante_raw": "EMPRESA CONTRATANTE S.A.",
-          "cnpj_contratante_raw": "98.765.432/0001-10",
-          "contratada_raw": "TECHSOLUTIONS LTDA.",
-          "cnpj_contratada_raw": "12.345.678/0001-90"
+          "contratante": "TechSolutions Ltda.",
+          "cnpj_contratante": "12.345.678/0001-90",
+          "endereco_contratante": "Av. Paulista, nº 1000, São Paulo/SP",
+          "contratada": "Alfa Consultoria em IA S.A.",
+          "cnpj_contratada": "98.765.432/0001-10",
+          "endereco_contratada": "Rua da Inovação, nº 500, Florianópolis/SC"
         }
       },
       {
         "secao": "OBJETO_CONTRATUAL",
-        "texto_original_relevante": "Prestação de serviços especializados em desenvolvimento, homologação e implantação de agentes inteligentes de IA...",
+        "texto_original_relevante": "CLÁUSULA PRIMEIRA - DO OBJETO: O presente contrato tem por objeto a prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
         "entidades_brutas_identificadas": {
-          "escopo_resumido": "Desenvolvimento, homologação e implantação de agentes de inteligência artificial integrados a sistemas legados."
+          "escopo_servicos": "desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos"
         }
       },
       {
         "secao": "CONDICOES_FINANCEIRAS",
-        "texto_original_relevante": "Valor total de R$ 120.000,00 a serem pagos em 12 parcelas mensais e sucessivas de R$ 10.000,00...",
+        "texto_original_relevante": "CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO: Pela prestação dos serviços contratados, a CONTRATANTE pagará à CONTRATADA o valor total fixo e irreajustável de R$ 45.000,00 (quarenta e cinco mil reais), distribuídos em 3 (três) parcelas mensais e consecutivas de R$ 15.000,00 (quinze mil reais), vencendo-se a primeira em 15/09/2026.",
         "entidades_brutas_identificadas": {
-          "valor_total_citado": 120000.0,
-          "parcelas_citadas": 12,
-          "valor_parcela_citado": 10000.0,
-          "periodicidade_citada": "mensal"
+          "valor_global": "R$ 45.000,00 (quarenta e cinco mil reais)",
+          "numero_parcelas": "3 (três)",
+          "valor_parcela_unitaria": "R$ 15.000,00 (quinze mil reais)",
+          "data_vencimento_primeira_parcela": "15/09/2026"
         }
       },
       {
         "secao": "PRAZOS_E_VIGENCIA",
-        "texto_original_relevante": "Vigência de 12 meses a contar da data de sua assinatura em 15 de janeiro de 2026, com aviso prévio de 30 dias...",
+        "texto_original_relevante": "CLÁUSULA TERCEIRA - DA VIGÊNCIA: O presente contrato vigorará pelo prazo determinado de 6 (seis) meses, com início em 01/09/2026 e término previsto em 01/03/2027, podendo ser renovado mediante termo aditivo escrito.",
         "entidades_brutas_identificadas": {
-          "data_assinatura_raw": "15/01/2026",
-          "prazo_meses_raw": 12,
-          "aviso_previo_dias_raw": 30
+          "data_inicial": "01/09/2026",
+          "duracao_meses": "6 (seis)",
+          "data_termino": "01/03/2027",
+          "observacao": "renovação mediante termo aditivo escrito"
         }
       },
       {
         "secao": "PENALIDADES_E_RESCISAO",
-        "texto_original_relevante": "Multa compensatória de 20% sobre o saldo remanescente do contrato na hipótese de rescisão imotivada sem justa causa...",
+        "texto_original_relevante": "CLÁUSULA QUARTA - DA RESCISÃO E MULTA: O presente contrato poderá ser rescindido por qualquer das partes mediante aviso prévio por escrito com antecedência mínima de 30 (trinta) dias. Na hipótese de rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado, a parte rescindente pagará à outra uma multa compensatória equivalente a 20% (vinte por cento) do valor remanescente do contrato.",
         "entidades_brutas_identificadas": {
-          "multa_percentual_raw": 20.0,
-          "base_calculo_raw": "saldo remanescente",
-          "gatilho_raw": "rescisao_imotivada_sem_justa_causa"
+          "percentual_multa": "20% (vinte por cento)",
+          "base_calculo_multa": "valor remanescente do contrato",
+          "aviso_previo_rescisorio": "30 (trinta) dias"
         }
       }
     ]
@@ -98,48 +110,20 @@
   "etapa2_cot_resolucao": {
     "resolucoes_passo_a_passo": [
       {
-        "dimensao": "CONDICOES_FINANCEIRAS",
-        "premissa_bruta": "Texto indica R$ 120.000,00 divididos em 12 parcelas mensais de R$ 10.000,00.",
-        "raciocinio_passo_a_passo": "Passo 1: Identifico o valor global expresso como R$ 120.000,00. Passo 2: Identifico o cronograma de 12 parcelas de R$ 10.000,00. Passo 3: Invoco a ferramenta 'extrair_e_validar_tabela_financeira' para atestar consistência matemática. Passo 4: A ferramenta verifica que 12 × 10.000 = 120.000,00 (diferença de 0 centavos). Passo 5: Conclui-se que o plano financeiro é matematicamente íntegro e normalizado em BRL.",
+        "dimensao": "financeira",
+        "premissa_bruta": "Contrato prevê valor total de R$ 45.000,00, dividido em 3 parcelas mensais de R$ 15.000,00, primeira parcela vencendo 15/09/2026.",
+        "raciocinio_passo_a_passo": "1. Identificar o valor total, número de parcelas e valor unitário. 2. Verificar consistência matemática: 3 × 15.000 = 45.000, coincide com valor total. 3. Confirmar periodicidade mensal e gerar tabela de pagamento com datas conseqüentes a partir de 15/09/2026. 4. Utilizar a ferramenta extrair_e_validar_tabela_financeira para validar e normalizar o cronograma.",
         "tool_invocada": "extrair_e_validar_tabela_financeira",
-        "dado_resolvido_final": {
-          "moeda": "BRL",
-          "valor_total_brl": 120000.0,
-          "parcelas_quantidade": 12,
-          "valor_parcela_brl": 10000.0,
-          "periodicidade": "mensal",
-          "soma_parcelas_calculada": 120000.0,
-          "soma_consistente": true,
-          "discrepancia_centavos": 0.0,
-          "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
-        }
+        "dado_resolvido_final": {}
       },
       {
-        "dimensao": "PRAZOS_E_VIGENCIA",
-        "premissa_bruta": "Assinatura em 15/01/2026 com vigência de 12 meses e aviso prévio de 30 dias.",
-        "raciocinio_passo_a_passo": "Passo 1: Extraio a data base de início como 15/01/2026. Passo 2: Extraio o prazo de 12 meses estipulado no instrumento. Passo 3: Invoco a ferramenta 'normalizar_prazos_e_datas' para computar a data de encerramento. Passo 4: O algoritmo projeta 12 meses no calendário, definindo término em 2027-01-15 (365 dias corridos). Passo 5: Converte-se para o padrão internacional ISO-8601 (YYYY-MM-DD).",
+        "dimensao": "prazos e vigência",
+        "premissa_bruta": "Contrato tem vigência de 6 meses, início 01/09/2026, término previsto 01/03/2027, aviso prévio de 30 dias para rescisão.",
+        "raciocinio_passo_a_passo": "1. Extrair data de início, duração em meses e aviso prévio. 2. Calcular data final exata somando 6 meses à data de início. 3. Verificar se a data de término informada (01/03/2027) coincide com o cálculo. 4. Normalizar prazos usando a ferramenta normalizar_prazos_e_datas para obter formato ISO‑8601 e confirmar dias de aviso prévio.",
         "tool_invocada": "normalizar_prazos_e_datas",
-        "dado_resolvido_final": {
-          "data_inicio_iso": "2026-01-15",
-          "data_fim_calculada_iso": "2027-01-15",
-          "vigencia_meses": 12,
-          "dias_corridos_totais": 365,
-          "aviso_previo_dias": 30,
-          "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
-        }
-      },
-      {
-        "dimensao": "QUALIFICACAO_E_PENALIDADES",
-        "premissa_bruta": "Contratante e Contratada com CNPJs explícitos e multa de rescisão de 20%.",
-        "raciocinio_passo_a_passo": "Passo 1: Verifico a higidez formal dos CNPJs (98.765.432/0001-10 e 12.345.678/0001-90), ambos com 14 dígitos numéricos. Passo 2: Isolei a cláusula de rescisão imotivada que estipula multa de 20% sobre o saldo remanescente. Passo 3: Registro o percentual bruto de 20.0% sem efetuar juízos de conformidade ou risco, preservando o dado fidedigno para que o Agente 2 (Avaliador de Risco) execute a auditoria jurídica futura.",
-        "tool_invocada": null,
-        "dado_resolvido_final": {
-          "cnpj_contratada_validado": "12.345.678/0001-90",
-          "percentual_multa_extraido": 20.0,
-          "base_calculo": "saldo_remanescente"
-        }
+        "dado_resolvido_final": {}
       }
     ],
-    "resumo_sanitizacao": "Todas as ambiguidades temporais, financeiras e contratuais foram resolvidas e validadas por ferramentas de cálculo."
+    "resumo_sanitizacao": "As ferramentas serão invocadas agora para obter os resultados estruturados que alimentarão o próximo estágio do raciocínio Chain‑of‑Thought."
   }
 }

@@ -1,20 +1,21 @@
 {
-  "data_avaliacao": "2026-10-02",
-  "dataset_teste": "contrato_exemplo.txt (Minuta de Desenvolvimento de IA)",
+  "data_avaliacao": "2026-11-10",
+  "dataset_teste": "agent1/contrato_exemplo.txt (Minuta Real de IA)",
+  "modelo_executado": "nvidia/nemotron-3.5-lightning:free",
   "gabarito_referencia": {
-    "valor_total_brl": 120000.0,
-    "parcelas_quantidade": 12,
-    "valor_parcela_brl": 10000.0,
-    "vigencia_meses": 12,
-    "data_inicio_iso": "2026-01-15",
-    "data_fim_calculada_iso": "2027-01-15",
+    "valor_total_brl": 45000.0,
+    "parcelas_quantidade": 3,
+    "valor_parcela_brl": 15000.0,
+    "vigencia_meses": 6,
+    "data_inicio_iso": "2026-09-01",
+    "data_fim_calculada_iso": "2027-03-01",
     "multa_rescisao_percentual": 20.0,
     "soma_consistente": true
   },
   "comparativo_variantes": {
     "variante_a": {
-      "variante": "Variante A (Prompt Monolítico / Texto Livre)",
-      "resposta_raw": "\n    Identifiquei os dados do contrato:\n    Contratante: Empresa Contratante S.A.\n    Contratada: TechSolutions Ltda.\n    Valor: R$ 120.000,00 divididos em 12 parcelas de R$ 10.000,00.\n    Vigência: 12 meses a partir de 15/01/2026.\n    Multa por rescisão: 20% sobre o saldo remanescente.\n    ",
+      "variante": "Variante A (Prompt Monolítico / Texto Livre / Sem Tools)",
+      "resposta_raw": "**Resumo do Contrato – Prestação de Serviços de Desenvolvimento de Inteligência Artificial**\n\n**Título:** Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial  \n\n**Partes envolvidas:**  \n- **Contratante:** TechSolutions Ltda. – Pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 12.345.678/0001-90, com sede na Av. Paulista, nº 1000, São Paulo/SP.  \n- **Contratada:** Alfa Consultoria em IA S.A. – Pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 98.765.432/0001-10, com sede na Rua da Inovação, nº 500, Florianópolis/SC.  \n\n**Valores:**  \n- Valor total fixo e irreajustável: **R$ 45.000,00** (quarenta e cinco mil reais).  \n- Forma de pagamento: 3 (três) parcelas mensais e consecutivas de R$ 15.000,00 (quinze mil reais), sendo a primeira vencida em **15/09/2026**.  \n\n**Prazos:**  \n- Vigência: **6 (seis) meses**.  \n- Início: **01/09/2026**.  \n- Término previsto: **01/03/2027**.  \n- Possibilidade de renovação mediante termo aditivo escrito.  \n\n**Penalidades:**  \n- Rescisão permitida mediante aviso prévio por escrito com antecedência mínima de **30 (trinta) dias**.  \n- Na hipótese de rescisão imotivada antes do término do prazo, a parte rescindente deverá pagar multa compensatória equivalente a **20% (vinte por cento)** do valor remanescente do contrato.  \n\n**Resumo livre:**  \nO contrato firmado entre a TechSolutions Ltda. e a Alfa Consultoria em IA S.A. destina-se ao desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos. Com duração de seis meses, de 1º de setembro de 2026 a 1º de março de 2027, o acordo prevê o pagamento total de R$ 45.000,00, dividido em três parcelas mensais iguais, iniciando-se com a primeira em 15/09/2026. As partes podem rescindir o contrato a qualquer momento mediante aviso prévio de 30 dias; entretanto, caso a rescisão ocorra imotivada antes do término do prazo, a parte responsável deverá arcar com uma multa equivalente a 20% do valor restante do contrato. A renovação somente será possível por meio de termo aditivo escrito.",
       "tools_chamadas": [],
       "metricas": {
         "taxa_conformidade_schema_tcs": 0.0,
@@ -25,49 +26,57 @@
       }
     },
     "variante_b": {
-      "variante": "Variante B (Prompt Anatômico + Tools + Pydantic v2)",
+      "variante": "Variante B (Prompt Estruturado + Tools + Pydantic v2)",
       "objeto_pydantic": {
-        "titulo": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
+        "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
         "contratante": {
-          "nome": "Empresa Contratante S.A.",
-          "cnpj_cpf": "98.765.432/0001-10",
-          "papel": "CONTRATANTE"
-        },
-        "contratada": {
           "nome": "TechSolutions Ltda.",
           "cnpj_cpf": "12.345.678/0001-90",
-          "papel": "CONTRATADA"
+          "papel": "Contratante"
         },
-        "objeto": "Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.",
+        "contratada": {
+          "nome": "Alfa Consultoria em IA S.A.",
+          "cnpj_cpf": "98.765.432/0001-10",
+          "papel": "Contratada"
+        },
+        "objeto": "Prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
         "financeiro": {
           "moeda": "BRL",
-          "valor_total_brl": 120000.0,
-          "parcelas_quantidade": 12,
-          "valor_parcela_brl": 10000.0,
+          "valor_total_brl": 45000.0,
+          "parcelas_quantidade": 3,
+          "valor_parcela_brl": 15000.0,
           "periodicidade": "mensal",
           "soma_consistente": true,
           "discrepancia_centavos": 0.0,
-          "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
+          "cronograma_resumo": "3x de 15.000,00 vencendo primeiro em 15/09/2026"
         },
         "vigencia": {
-          "data_inicio_iso": "2026-01-15",
-          "data_fim_calculada_iso": "2027-01-15",
-          "vigencia_meses": 12,
-          "dias_corridos_totais": 365,
+          "data_inicio_iso": "2026-09-01",
+          "data_fim_calculada_iso": "2027-03-01",
+          "vigencia_meses": 6,
+          "dias_corridos_totais": 181,
           "aviso_previo_dias": 30,
-          "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
+          "vigencia_formatada": "01/09/2026 a 01/03/2027"
         },
         "penalidades": {
           "percentual_multa_rescisoria": 20.0,
-          "base_calculo": "saldo remanescente do contrato",
-          "gatilho_aplicacao": "rescisao_imotivada_sem_justa_causa"
+          "base_calculo": "valor remanescente do contrato",
+          "gatilho_aplicacao": "rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado"
+        },
+        "fornecedor_homologado": {
+          "cnpj": "98.765.432/0001-10",
+          "razao_social": "Alfa Consultoria em IA S.A.",
+          "situacao_cadastral": "ATIVA",
+          "score_compliance": 88.5,
+          "limite_alcada_brl": 150000.0,
+          "categoria_risco": "MEDIO",
+          "restricoes_juridicas": "Histórico de renegociação de multa rescisória em aditivo prévio (2025). Homologada com ressalva contratual."
         },
         "secoes_analisadas": [
-          "PREAMBULO",
-          "OBJETO",
-          "PRECO_E_CONDICOES",
-          "VIGENCIA",
-          "RESCISAO_E_PENALIDADES"
+          "objeto",
+          "financeiro",
+          "vigencia",
+          "rescisao"
         ]
       },
       "tools_chamadas": [
@@ -85,13 +94,13 @@
   },
   "analise_comparativa": {
     "diferenca_igq": 0.8,
-    "ganho_percentual": "+400%",
-    "decisao_justificada": "Adoção mandatória da Variante B. A Variante A produziu texto livre sem validação de schema (TCS=0.00), não acionou tools (TIT=0.00) e não calculou prazos no calendário ISO nem atestou consistência financeira (ASC=0.00). A Variante B alcançou pontuação máxima (IGQ=1.00)."
+    "ganho_percentual": "+400.0%",
+    "decisao_justificada": "Adoção mandatória da Variante B. A Variante A gerou texto corrido sem schema tipado (TCS=0.0), sem invocação de tools (TIT=0.0) e sem sanitização algorítmica de datas ISO e tolerância de centavos (ASC=0.0). A Variante B alcançou pontuação máxima (IGQ=1.0) com acoplamento a DadosContratoExtraido."
   },
   "ciclo_prrr": {
-    "prompt_v1": "Extraia as informações do contrato jurídico abaixo e retorne partes, valores e vigência.",
-    "response_v1": "Identifiquei os dados do contrato:\n    Contratante: Empresa Contratante S.A.\n    Contratada: TechSolutions Ltda.\n    Valor: R$ 120.000,00 divididos em 12 parcelas de R$ 10.000,00.\n    Vigência: 12 meses a partir de 15/01/2026.\n    Multa por rescisão: 20% sobre o saldo remanescente.",
-    "reflect": "A resposta V1 não calcula a data de encerramento em padrão ISO, não confere a consistência matemática das parcelas com tolerância de centavos e gera texto livre incompatível com pipelines tipados.",
-    "revise": "Inclusão de anatomia completa no prompt, obrigatoriedade de invocação de 'normalizar_prazos_e_datas' e 'extrair_e_validar_tabela_financeira', e acoplamento ao schema Pydantic DadosContratoExtraido."
+    "prompt_v1": "Você é um assistente geral. Extraia os dados do contrato abaixo e escreva um resumo livre com o título, partes envolvidas, valores, prazos e penalidades.",
+    "response_v1": "**Resumo do Contrato – Prestação de Serviços de Desenvolvimento de Inteligência Artificial**\n\n**Título:** Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial  \n\n**Partes envolvidas:**  \n- **Contratante:** TechSolutions Ltda. – Pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 12.345.678/0001-90, com sede na Av. Paulista, nº 1000, São Paulo/SP.  \n- **Contratada:** Alfa Consultoria em IA S.A. – Pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o...",
+    "reflect": "A resposta da Variante A gerou texto livre não determinístico, sem normalização no padrão ISO-8601 e sem conferência matemática das parcelas contratuais, inviabilizando consumo downstream pelo Agente 2.",
+    "revise": "Inclusão de anatomia completa com role & task estrita, obrigatoriedade de invocação de 'normalizar_prazos_e_datas', 'extrair_e_validar_tabela_financeira' e 'consultar_cadastro_fornecedor', combinadas com output_type=DadosContratoExtraido."
   }
 }

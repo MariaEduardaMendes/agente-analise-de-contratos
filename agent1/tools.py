@@ -176,3 +176,54 @@ def extrair_e_validar_tabela_financeira(
         String em formato JSON atestando se a soma é matematicamente consistente e o cronograma decomposto.
     """
     return extrair_e_validar_tabela_financeira_fn(valor_total, parcelas_qtd, valor_parcela, periodicidade)
+
+
+def consultar_cadastro_fornecedor_fn(cnpj_cpf: str) -> str:
+    """
+    Função base para consultar a fonte estruturada de dados corporativos (cadastro_fornecedores).
+    Atende à exigência da Rubrica 12: Integração com fonte de negócio relacional.
+    """
+    print(f"\n[EXECUÇÃO DE TOOL] >>> Invocando 'consultar_cadastro_fornecedor' para CNPJ/CPF='{cnpj_cpf}'", flush=True)
+    try:
+        from memoria_rag import consultar_cadastro_fornecedor_db
+        dados_fornecedor = consultar_cadastro_fornecedor_db(cnpj_cpf)
+    except Exception as e:
+        dados_fornecedor = None
+        print(f"[TOOL ERROR] Erro ao acessar banco de fornecedores: {e}", flush=True)
+
+    if not dados_fornecedor:
+        resultado = {
+            "encontrado": False,
+            "cnpj": cnpj_cpf,
+            "mensagem": "Fornecedor não localizado na base corporativa homologada."
+        }
+    else:
+        resultado = {
+            "encontrado": True,
+            **dados_fornecedor
+        }
+
+    resultado_str = json.dumps(resultado, ensure_ascii=False)
+    REGISTRO_CHAMADAS_TOOLS.append({
+        "ferramenta": "consultar_cadastro_fornecedor",
+        "input_args": {"cnpj_cpf": cnpj_cpf},
+        "output_retornado": resultado
+    })
+    print(f"[EXECUÇÃO DE TOOL] <<< Retorno da consulta cadastral: {resultado_str}", flush=True)
+    return resultado_str
+
+
+@function_tool
+def consultar_cadastro_fornecedor(cnpj_cpf: str) -> str:
+    """
+    Consulta a base estruturada relacional corporativa (cadastro_fornecedores)
+    para verificar a situação cadastral, score de compliance histórico, limite de alçada
+    e restrições jurídicas do fornecedor.
+
+    Args:
+        cnpj_cpf: Número do CNPJ ou CPF da Contratada (ex: '98.765.432/0001-10' ou '12.345.678/0001-90').
+
+    Returns:
+        JSON com situação cadastral, score de compliance, limite de alçada e restrições jurídicas.
+    """
+    return consultar_cadastro_fornecedor_fn(cnpj_cpf)

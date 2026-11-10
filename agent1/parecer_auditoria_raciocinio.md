@@ -1,20 +1,21 @@
 # Relatório Técnico de Extração Estruturada de Contrato (Agente 1)
 
 ## 1. Dados Cadastrais e Objeto
-- **Documento:** Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial
-- **Contratante:** Empresa Contratante S.A. (CNPJ: 98.765.432/0001-10)
-- **Contratada:** TechSolutions Ltda. (CNPJ: 12.345.678/0001-90)
-- **Objeto:** Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.
+- **Documento:** CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL
+- **Contratante:** TechSolutions Ltda. (CNPJ: 12.345.678/0001-90)
+- **Contratada:** Alfa Consultoria em IA S.A. (CNPJ: 98.765.432/0001-10)
+- **Fonte Estruturada de Fornecedor:** Alfa Consultoria em IA S.A. (Situação: ATIVA, Score Compliance: 88.5/100, Alçada: R$ 150,000.00)
+- **Objeto:** CLÁUSULA PRIMEIRA - DO OBJETO: O presente contrato tem por objeto a prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.
 
 ## 2. Condições Financeiras (Validadas via Tool de Tabela Financeira)
-- **Valor Global:** R$ 120,000.00
-- **Condição:** 12 parcelas de R$ 10,000.00 (mensal)
+- **Valor Global:** R$ 45,000.00
+- **Condição:** Parcelamento validado.
 - **Consistência Matemática:** Íntegra / 100% Consistente
 
 ## 3. Prazos e Vigência (Normalizados via Tool Temporal)
-- **Data Início:** 2026-01-15
-- **Data Término Calculada:** 2027-01-15
-- **Período Total:** De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)
+- **Data Início:** 2026-09-01
+- **Data Término Calculada:** 2027-03-01
+- **Período Total:** 01/09/2026 a 01/03/2027
 - **Aviso Prévio Exigido:** 30 dias
 
 ## 4. Penalidades Extraídas (Para Consumo pelo Agente 2)

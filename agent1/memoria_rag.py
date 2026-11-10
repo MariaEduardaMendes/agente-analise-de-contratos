@@ -7,6 +7,7 @@ Implementa:
 """
 
 import os
+import re
 import json
 import math
 import sqlite3
@@ -270,9 +271,126 @@ class PipelineRAG:
                 metadados=p["metadados"]
             )
 
-# Instância global do pipeline RAG
+# ============================================================================
+# 3. Fonte Estruturada de Negócio: Cadastro de Fornecedores e Contratos
+# ============================================================================
+
+def inicializar_fonte_estruturada_fornecedores(db_path: Path | str = CAMINHO_BANCO_PADRAO):
+    """
+    Cria e popula a tabela relacional de negócio 'cadastro_fornecedores' no SQLite.
+    Atende à exigência da Rubrica 12: Fonte estruturada corporativa em banco relacional.
+    """
+    with sqlite3.connect(str(db_path), check_same_thread=False) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cadastro_fornecedores (
+                cnpj TEXT PRIMARY KEY,
+                razao_social TEXT NOT NULL,
+                nome_fantasia TEXT,
+                situacao_cadastral TEXT NOT NULL,
+                score_compliance REAL NOT NULL,
+                limite_alcada_brl REAL NOT NULL,
+                categoria_risco TEXT NOT NULL,
+                data_homologacao TEXT NOT NULL,
+                restricoes_juridicas TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Registros base de negócio corporativos
+        fornecedores_base = [
+            (
+                "98.765.432/0001-10",
+                "Alfa Consultoria em IA S.A.",
+                "Alfa IA",
+                "ATIVA",
+                88.5,
+                150000.0,
+                "MEDIO",
+                "2024-05-10",
+                "Histórico de renegociação de multa rescisória em aditivo prévio (2025). Homologada com ressalva contratual."
+            ),
+            (
+                "12.345.678/0001-90",
+                "TechSolutions Ltda.",
+                "TechSolutions Enterprise",
+                "ATIVA",
+                96.0,
+                500000.0,
+                "BAIXO",
+                "2023-01-15",
+                "Fornecedor estratégico interno. Sem restrições cadastrais no CEIS/CNJ."
+            ),
+            (
+                "23.456.789/0001-01",
+                "CloudCorp Soluções Digitais Ltda.",
+                "CloudCorp Infra",
+                "ATIVA",
+                91.0,
+                300000.0,
+                "BAIXO",
+                "2023-09-01",
+                "Homologada para serviços de computação em nuvem e infraestrutura escalável."
+            ),
+            (
+                "99.888.777/0001-66",
+                "FraudeTech Serviços Suspensos ME",
+                "FraudeTech",
+                "SUSPENSA",
+                25.0,
+                0.0,
+                "ALTO",
+                "2021-04-12",
+                "Consta no Cadastro Nacional de Empresas Inidôneas e Suspensas (CEIS). Contratação vedada."
+            )
+        ]
+
+        for f in fornecedores_base:
+            conn.execute("""
+                INSERT INTO cadastro_fornecedores (
+                    cnpj, razao_social, nome_fantasia, situacao_cadastral,
+                    score_compliance, limite_alcada_brl, categoria_risco,
+                    data_homologacao, restricoes_juridicas
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(cnpj) DO UPDATE SET
+                    razao_social=excluded.razao_social,
+                    situacao_cadastral=excluded.situacao_cadastral,
+                    score_compliance=excluded.score_compliance,
+                    limite_alcada_brl=excluded.limite_alcada_brl,
+                    categoria_risco=excluded.categoria_risco,
+                    restricoes_juridicas=excluded.restricoes_juridicas
+            """, f)
+
+def consultar_cadastro_fornecedor_db(cnpj_ou_cpf: str, db_path: Path | str = CAMINHO_BANCO_PADRAO) -> Optional[Dict[str, Any]]:
+    """Consulta os dados cadastrais estruturados de negócio de um fornecedor pelo CNPJ."""
+    cnpj_limpo = re.sub(r"\D", "", cnpj_ou_cpf)
+    with sqlite3.connect(str(db_path), check_same_thread=False) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT cnpj, razao_social, nome_fantasia, situacao_cadastral,
+                   score_compliance, limite_alcada_brl, categoria_risco,
+                   data_homologacao, restricoes_juridicas
+            FROM cadastro_fornecedores
+        """)
+        for row in cursor.fetchall():
+            row_cnpj_limpo = re.sub(r"\D", "", row[0])
+            if row_cnpj_limpo == cnpj_limpo or cnpj_ou_cpf in row[0]:
+                return {
+                    "cnpj": row[0],
+                    "razao_social": row[1],
+                    "nome_fantasia": row[2],
+                    "situacao_cadastral": row[3],
+                    "score_compliance": float(row[4]),
+                    "limite_alcada_brl": float(row[5]),
+                    "categoria_risco": row[6],
+                    "data_homologacao": row[7],
+                    "restricoes_juridicas": row[8]
+                }
+    return None
+
+# Inicializa banco vetorial RAG e fonte estruturada de negócio
 rag_global = PipelineRAG()
 rag_global.popular_precedentes_padrao()
+inicializar_fonte_estruturada_fornecedores()
 
 # ============================================================================
 # 3. Ferramenta (@function_tool) para o Agente Consultar o RAG

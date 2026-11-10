@@ -1,38 +1,31 @@
 {
   "sqlite_session": {
     "session_id": "sessao_auditoria_techsolutions_01",
-    "banco_sqlite": "C:\\Users\\dudap\\OneDrive\\Área de Trabalho\\Agentes IA\\PB\\agent\\banco_memoria_contratos.db",
+    "banco_sqlite": "C:\\Users\\dudap\\OneDrive\\Área de Trabalho\\Agentes IA\\PB\\agent1\\banco_memoria_contratos.db",
     "total_mensagens_persistidas": 4,
-    "continuidade_comprovada": true,
-    "historico": [
+    "dialogo_executado_real": [
       {
         "role": "user",
-        "content": "Olá, sou o Diretor Jurídico da TechSolutions. Para todas as nossas análises de contratos, grave as seguintes diretrizes estritas: 1) O teto máximo de multa rescisória tolerado é 10%. 2) É obrigatório que o foro de eleição seja a Comarca de São Paulo/SP. 3) Qualquer aditivo deve ser aprovado pelo Comitê de Governança de IA."
+        "mensagem": "Olá, sou o Diretor Jurídico da TechSolutions. Para todas as nossas análises de contratos, grave as seguintes diretrizes estritas: 1) O teto máximo de multa rescisória tolerado é 10%. 2) É obrigatório que o foro de eleição seja a Comarca de São Paulo/SP. 3) Qualquer aditivo deve ser aprovado pelo Comitê de Governança de IA."
       },
       {
-        "role": "assistant",
-        "content": "Entendido, Diretor! As diretrizes da TechSolutions foram registradas com sucesso na sua sessão persistente: teto de multa rescisória fixado em no máximo 10%, foro exclusivo na Comarca de São Paulo/SP e obrigatoriedade de chancela do Comitê de Governança de IA para aditivos contratuais."
+        "role": "assistant_llm",
+        "resposta": "Confirmado. Todas as diretrizes foram incorporadas ao escopo desta sessão e serão rigorosamente aplicadas em todas as análises contratuais: 1) Multa rescisória máxima de 10%; 2) Foro eleitoral: Comarca de São Paulo/SP; 3) Aditivos somente após aprovação do Comitê de Governança de IA. Contarei com essas restrições em todas as minhas respostas e recomendações."
       },
       {
         "role": "user",
-        "content": "Com base no alinhamento prévio da TechSolutions, quais são as nossas regras para multa rescisória e foro?"
+        "mensagem": "Com base no alinhamento prévio da TechSolutions, quais são as nossas regras para multa rescisória e foro?"
       },
       {
-        "role": "assistant",
-        "content": "Conforme você determinou em nossa conversa anterior na TechSolutions: 1) O teto de multa rescisória não pode ultrapassar 10% (qualquer valor acima será apontado como irregular); 2) O foro deve ser obrigatoriamente a Comarca de São Paulo/SP; 3) Qualquer alteração contratual depende da aprovação do Comitê de Governança de IA."
+        "role": "assistant_llm",
+        "resposta": "Em conformidade com as diretrizes estabelecidas para a TechSolutions:\n\n1. **Multa rescisória**: teto máximo de 10%.\n2. **Foro de eleição**: Comarca de São Paulo/SP.\n\nEssas são as regras rígidas a serem aplicadas em todas as análises contratuais."
       }
     ]
   },
-  "rag_embeddings": {
-    "modelo_embeddings": "text-embedding-3-small",
-    "dimensao_vetores": 1536,
-    "consulta_realizada": "precedente multa rescisoria Alfa Consultoria IA",
-    "top_match": {
-      "documento_id": "PRECEDENTE-ALFA-2025-01",
-      "titulo": "Aditivo Contratual nº 1 - Alfa Consultoria em IA e TechSolutions (2025)",
-      "score_similaridade": 0.6525,
-      "conteudo_recuperado": "Em contrato anterior de desenvolvimento de IA firmado em 2025 com a Alfa Consultoria em IA S.A., a cláusula de multa rescisória de 20% foi contestada pela TechSolutions e reduzida via Termo Aditivo para 10% sobre o saldo remanescente, com fixação de aviso prévio de 30 dias e foro em São Paulo/SP."
-    },
-    "integracao_em_nova_sessao": true
+  "rag_vector_search": {
+    "session_id": "sessao_nova_auditoria_2026_rag",
+    "tabela_vetorial_real": "rag_documentos",
+    "pergunta": "Estamos analisando um novo contrato da Alfa Consultoria em IA que contém multa rescisória de 20%. Já tivemos algum precedente ou aditivo anterior com essa empresa sobre essa mesma cláusula? O que foi acordado?",
+    "resposta_agente_rag_llm": "**Resposta rápida:**  \nSim. Já possuímos um precedente recente com a **Alfa Consultoria em IA S.A.** que trata exatamente da cláusula de multa rescisória de 20%.\n\n**Detalhes do precedente (Aditivo Contratual nº 1 – 2025):**\n\n| Item | What was agreed |\n|------|-----------------|\n| **Cláusula original** | Multa rescisória de **20 %** sobre o valor total do contrato. |\n| **Posição da TechSolutions** | A TechSolutions considerou a penalidade onerosa e pediu a sua revisão. |\n| **Resultado do Termo Aditivo** | A multa foi **reduzida para 10 %** sobre o *saldo remanescente* do contrato. |\n| **Outras condições introduzidas** | • **Aviso prévio de 30 **dias** antes da rescisão.<br>• **Foro** em **São Paulo/SP**. |\n| **Documento** | `PRECEDENTE-ALFA-2025-01` (score de similaridade 0,6688). |\n| **Categoria** | Histórico de fornecedor. |\n\n**Interpretação para o novo contrato**\n\nComo o novo contrato traz novamente uma multa rescisória de 20 %, o precedente indica que:\n\n1. **A cláusula pode ser negociada** – a experiência passada mostra que a empresa aceitou a redução para 10 % quando a TechSolutions apontou o risco de onerosidade desproporcional.  \n2. **É recomendável incluir salvaguardas semelhantes**:  \n   * Redução da multa para 10 % (ou outro patamar aceitável).  \n   * Manter o aviso prévio de 30 dias.  \n   * Definir o foro em São Paulo/SP (ou o foro preferido pela TechSolutions).  \n3. **Caso a Alfa Consultoria não aceite a redução**, poder-se‑á invocar a **jurisprudência do STJ** (Art. 413 do Código Civil), que permite ao juiz reduzir penalidades rescisórias que onerarem desproporcionalmente uma das partes, com base na função social do contrato e no cumprimento parcial das obrigações.\n\n**Próximos passos sugeridos**\n\n- **Abrir negociação** com a Alfa Consultoria baseando‑se no precedente acima, propondo a redução de 20 % para 10 % e a inclusão dos 30 dias de aviso prévio.  \n- **Caso a parte resistente**, preparar um “Termo Aditivo de Revisão de Cláusula Penal” já com a redação ajustada, citando o precedente interno e, se necessário, a jurisprudência do STJ como lastro legal.  \n- **Registrar a nova condição** no histórico de fornecedores para futura referenciação.\n\nEm suma, a empresa já possui um acordo anterior que transformou a multa rescisória de 20 % em 10 % (com aviso prévio de 30 dias e foro em SP). Esse precedente pode ser usado como base para a negociação do novo contrato."
   }
 }

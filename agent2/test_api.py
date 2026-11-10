@@ -77,7 +77,7 @@ def testar_fluxo_agente_2():
     assert data["contrato_titulo"] == dados_contrato_mock["titulo"]
     assert "score_conformidade" in data
     assert "nivel_risco_geral" in data
-    assert len(data["itens_auditados"]) == 3
+    assert len(data["itens_auditados"]) >= 3, f"Esperado pelo menos 3 itens auditados, obteve {len(data['itens_auditados'])}"
     assert len(data["recomendacoes_mitigacao"]) > 0
     
     # 4. Testa GET /status para task inexistente (404)

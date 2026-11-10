@@ -40,7 +40,7 @@ agent1/
 
 ## 3. Ferramentas Python Integradas (`tools.py`)
 
-O Agente 1 possui duas ferramentas determinísticas decoradas com `@function_tool` e tipagem estrita (PEP 484):
+O Agente 1 possui três ferramentas determinísticas decoradas com `@function_tool` e tipagem estrita (PEP 484):
 
 1. **`normalizar_prazos_e_datas`**:
    - *Finalidade:* Converte datas para padrão ISO-8601 (`YYYY-MM-DD`), calcula prazo final de vigência somando meses contratados e calcula dias corridos e prazo de aviso prévio.
@@ -48,6 +48,11 @@ O Agente 1 possui duas ferramentas determinísticas decoradas com `@function_too
 
 2. **`extrair_e_validar_tabela_financeira`**:
    - *Finalidade:* Realiza auditoria matemática estrita: multiplica quantidade de parcelas pelo valor unitário, confronta com o valor total e calcula discrepâncias centésimais.
+   - *Assinatura:* `(valor_total: float, parcelas_qtd: int, valor_parcela: float, periodicidade: str = "mensal") -> str (JSON)`
+
+3. **`consultar_cadastro_fornecedor`**:
+   - *Finalidade:* Consulta a fonte de dados estruturada corporativa em banco relacional (`cadastro_fornecedores`) para recuperar situação cadastral, score de compliance e limite de alçada homologado.
+   - *Assinatura:* `(cnpj_cpf: str) -> str (JSON)`
    - *Assinatura:* `(valor_total: float, parcelas_qtd: int, valor_parcela: float, periodicidade: str = 'mensal') -> str (JSON)`
 
 ---

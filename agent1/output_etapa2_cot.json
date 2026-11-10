@@ -1,47 +1,19 @@
 {
   "resolucoes_passo_a_passo": [
     {
-      "dimensao": "CONDICOES_FINANCEIRAS",
-      "premissa_bruta": "Texto indica R$ 120.000,00 divididos em 12 parcelas mensais de R$ 10.000,00.",
-      "raciocinio_passo_a_passo": "Passo 1: Identifico o valor global expresso como R$ 120.000,00. Passo 2: Identifico o cronograma de 12 parcelas de R$ 10.000,00. Passo 3: Invoco a ferramenta 'extrair_e_validar_tabela_financeira' para atestar consistência matemática. Passo 4: A ferramenta verifica que 12 × 10.000 = 120.000,00 (diferença de 0 centavos). Passo 5: Conclui-se que o plano financeiro é matematicamente íntegro e normalizado em BRL.",
+      "dimensao": "financeira",
+      "premissa_bruta": "Contrato prevê valor total de R$ 45.000,00, dividido em 3 parcelas mensais de R$ 15.000,00, primeira parcela vencendo 15/09/2026.",
+      "raciocinio_passo_a_passo": "1. Identificar o valor total, número de parcelas e valor unitário. 2. Verificar consistência matemática: 3 × 15.000 = 45.000, coincide com valor total. 3. Confirmar periodicidade mensal e gerar tabela de pagamento com datas conseqüentes a partir de 15/09/2026. 4. Utilizar a ferramenta extrair_e_validar_tabela_financeira para validar e normalizar o cronograma.",
       "tool_invocada": "extrair_e_validar_tabela_financeira",
-      "dado_resolvido_final": {
-        "moeda": "BRL",
-        "valor_total_brl": 120000.0,
-        "parcelas_quantidade": 12,
-        "valor_parcela_brl": 10000.0,
-        "periodicidade": "mensal",
-        "soma_parcelas_calculada": 120000.0,
-        "soma_consistente": true,
-        "discrepancia_centavos": 0.0,
-        "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
-      }
+      "dado_resolvido_final": {}
     },
     {
-      "dimensao": "PRAZOS_E_VIGENCIA",
-      "premissa_bruta": "Assinatura em 15/01/2026 com vigência de 12 meses e aviso prévio de 30 dias.",
-      "raciocinio_passo_a_passo": "Passo 1: Extraio a data base de início como 15/01/2026. Passo 2: Extraio o prazo de 12 meses estipulado no instrumento. Passo 3: Invoco a ferramenta 'normalizar_prazos_e_datas' para computar a data de encerramento. Passo 4: O algoritmo projeta 12 meses no calendário, definindo término em 2027-01-15 (365 dias corridos). Passo 5: Converte-se para o padrão internacional ISO-8601 (YYYY-MM-DD).",
+      "dimensao": "prazos e vigência",
+      "premissa_bruta": "Contrato tem vigência de 6 meses, início 01/09/2026, término previsto 01/03/2027, aviso prévio de 30 dias para rescisão.",
+      "raciocinio_passo_a_passo": "1. Extrair data de início, duração em meses e aviso prévio. 2. Calcular data final exata somando 6 meses à data de início. 3. Verificar se a data de término informada (01/03/2027) coincide com o cálculo. 4. Normalizar prazos usando a ferramenta normalizar_prazos_e_datas para obter formato ISO‑8601 e confirmar dias de aviso prévio.",
       "tool_invocada": "normalizar_prazos_e_datas",
-      "dado_resolvido_final": {
-        "data_inicio_iso": "2026-01-15",
-        "data_fim_calculada_iso": "2027-01-15",
-        "vigencia_meses": 12,
-        "dias_corridos_totais": 365,
-        "aviso_previo_dias": 30,
-        "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
-      }
-    },
-    {
-      "dimensao": "QUALIFICACAO_E_PENALIDADES",
-      "premissa_bruta": "Contratante e Contratada com CNPJs explícitos e multa de rescisão de 20%.",
-      "raciocinio_passo_a_passo": "Passo 1: Verifico a higidez formal dos CNPJs (98.765.432/0001-10 e 12.345.678/0001-90), ambos com 14 dígitos numéricos. Passo 2: Isolei a cláusula de rescisão imotivada que estipula multa de 20% sobre o saldo remanescente. Passo 3: Registro o percentual bruto de 20.0% sem efetuar juízos de conformidade ou risco, preservando o dado fidedigno para que o Agente 2 (Avaliador de Risco) execute a auditoria jurídica futura.",
-      "tool_invocada": null,
-      "dado_resolvido_final": {
-        "cnpj_contratada_validado": "12.345.678/0001-90",
-        "percentual_multa_extraido": 20.0,
-        "base_calculo": "saldo_remanescente"
-      }
+      "dado_resolvido_final": {}
     }
   ],
-  "resumo_sanitizacao": "Todas as ambiguidades temporais, financeiras e contratuais foram resolvidas e validadas por ferramentas de cálculo."
+  "resumo_sanitizacao": "As ferramentas serão invocadas agora para obter os resultados estruturados que alimentarão o próximo estágio do raciocínio Chain‑of‑Thought."
 }

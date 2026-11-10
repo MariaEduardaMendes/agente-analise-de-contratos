@@ -3,9 +3,9 @@
 **Projeto de Bloco — Desenvolvimento de Agentes Inteligentes**  
 **Autora:** Maria Eduarda Mendes  
 **Repositório Oficial no GitHub:** [https://github.com/MariaEduardaMendes/agente-analise-de-contratos](https://github.com/MariaEduardaMendes/agente-analise-de-contratos)  
-**Versão:** TP3 Consolidado (Microsserviços REST FastAPI, Context Engineering e Orquestração n8n)  
-**Data:** 19/10/2026  
-**Status:** Implementado, Testado e Homologado  
+**Versão:** TP3 Consolidado com Atendimento Integral aos Feedbacks de TP2 e TP3 (Rubrica 12, Agentes Reais via Runner.run, Fonte Estruturada de Negócio e Avaliação A/B Real)  
+**Data:** 10/11/2026  
+**Status:** Implementado, Testado com Modelo Real e Homologado  
 
 ---
 
@@ -23,365 +23,377 @@ O projeto de análise e auditoria inteligente de contratos foi estruturado em um
 ```
 
 1. **Fase TP1 (Componente Inicial):** Script Python elementar que consumia minutas contratuais e produzia JSONs simples, sujeito a alucinações de cálculo e vigência temporal relativa.
-2. **Fase TP2 (Agente Inteligente e Funcional):**
-   - Implementação de ferramentas Python determinísticas decoradas com `@function_tool` (cálculo de datas ISO-8601 e integridade de parcelas).
-   - Decomposição de tarefas complexas através de *Least-to-Most Prompting* e raciocínio deliberativo (*Chain-of-Thought*).
-   - Dupla camada de memória persistente: `SQLiteSession` para retenção de histórico conversacional e RAG vetorial com embeddings (`text-embedding-3-small`) para recuperação de precedentes.
-   - Saídas fortemente tipadas com validação estrutural via **Pydantic v2**.
+2. **Fase TP2 (Agente Inteligente e Funcional com Execução Real):**
+   - Implementação de ferramentas Python determinísticas decoradas com `@function_tool` (cálculo de datas ISO-8601, integridade de parcelas e consulta a cadastro de fornecedores).
+   - Decomposição de tarefas complexas através de *Least-to-Most Prompting* e raciocínio deliberativo (*Chain-of-Thought*) enviados de verdade ao modelo LLM via `Runner.run`.
+   - Dupla camada de memória persistente: `SQLiteSession` para retenção de histórico conversacional entre runs distintos e RAG vetorial com embeddings (`text-embedding-3-small`) sobre a tabela `rag_documentos` para recuperação de precedentes.
+   - Saídas fortemente tipadas com validação estrutural via **Pydantic v2** (`DadosContratoExtraido`).
+   - Benchmark A/B real comparando variantes executadas via API.
 3. **Fase TP3 (Arquitetura Multi-Agente Desacoplada e Orquestração):**
-   - **Agente 1 em Microsserviço REST:** Transformação do extrator em serviço HTTP com **FastAPI** e **`BackgroundTasks`**, respondendo `POST /run` com `202 Accepted` imediato e polling em `GET /status/{task_id}`.
-   - **Segundo Agente Independente (Agente 2):** Implementação de um microsserviço isolado (`agent2/`) especializado em **Auditoria de Conformidade e Risco**, com suas próprias tools, Pydantic v2 e API FastAPI na porta `8002`.
+   - **Agente 1 em Microsserviço REST:** Transformação do extrator em serviço HTTP com **FastAPI** e **`BackgroundTasks`**, respondendo `POST /run` com `202 Accepted` imediato e polling em `GET /status/{task_id}`, lendo dinamicamente minutas reais através do `Runner.run`.
+   - **Segundo Agente Independente (Agente 2):** Implementação de um microsserviço isolado (`agent2/`) especializado em **Auditoria de Conformidade e Risco**, transformado em um **Agent inteligente real** com `@function_tool auditar_parametros_contratuais`, Pydantic v2 (`output_type=RelatorioConformidade`) e API FastAPI na porta `8002`.
    - **Context Engineering Descentralizado:** Arquivos `CLAUDE.md` exclusivos em cada pasta de agente (`agent1/CLAUDE.md` e `agent2/CLAUDE.md`), sem arquivos globais acoplados na raiz.
    - **Primeiro Workflow n8n:** Demonstração operacional de disparo assíncrono e captura de resposta via nó HTTP no n8n (`workflows/workflow_tp3_agente_extracao.json`).
-   - **Consolidação Final do Pipeline de Prompts:** Avaliação quantitativa com 4 métricas, diagnóstico de prompts ineficazes e homologação da Variante V4.
+   - **Consolidação Final do Pipeline de Prompts:** Avaliação quantitativa com 4 métricas (TCS, TIT, AFC, ASC, IGQ) sobre execuções reais do modelo.
 
 ---
 
-## 🏛️ 2. Mapeamento da Estrutura de Pastas do Repositório
+## 📌 2. Atendimento aos Feedbacks de TP2 e TP3 (Rubrica 12 e Agentes Reais)
 
-O repositório segue rigorosamente os padrões de desacoplamento de microsserviços exigidos:
+Em resposta aos apontamentos da banca avaliadora, todas as deficiências foram integralmente sanadas com implementações e execuções reais:
+
+### 2.1 Correção dos Agentes: Fim das Simulações e Execução Real com `Runner.run`
+- **Problema Apontado:** Memória, raciocínio encadeado, saídas tipadas e avaliação haviam sido demonstrados com valores fixos em código, sem chamar o modelo LLM no runtime.
+- **Solução Implementada:**
+  - O Agente 1 ([`agent1/agente_extracao.py`](agent1/agente_extracao.py)) agora executa o LLM real via `Runner.run_sync(agente, ...)` utilizando o `OpenAIChatCompletionsModel` conectado ao OpenRouter (`nvidia/nemotron-3.5-lightning:free`). Ele lê e extrai os dados diretamente da minuta fornecida (e não de valores estáticos). Testes com duas minutas distintas (`contrato_exemplo.txt` e `contrato_exemplo_2.txt`) comprovam que o agente extrai valores e partes diferentes dinamicamente.
+  - O Agente 2 ([`agent2/agente_auditoria.py`](agent2/agente_auditoria.py)) foi transformado de uma função estática em um **Agent completo** (`AgenteAuditoriaRisco`) que executa via `Runner.run`, aciona a tool `@function_tool auditar_parametros_contratuais` e gera a saída tipada `RelatorioConformidade`.
+  - O módulo de memória persistente ([`agent1/demo_memoria_rag.py`](agent1/demo_memoria_rag.py)) passa a sessão `SQLiteSession` no `Runner.run(agent, ..., session=session)` tanto no Run 1 quanto no Run 2, comprovando que o modelo recupera as diretrizes prévias diretamente do banco SQLite.
+  - O pipeline de raciocínio encadeado ([`agent1/pipeline_raciocinio.py`](agent1/pipeline_raciocinio.py)) envia os prompts das etapas *Least-to-Most* e *Chain-of-Thought* diretamente ao modelo LLM.
+
+### 2.2 Atendimento da Rubrica 12: Os 3 Entregáveis Adicionais
+
+#### A) Fonte Estruturada de Negócio
+- **Exigência da Rubrica 12:** Uma fonte de dados de negócio em banco relacional ou API (como cadastro de fornecedores ou de contratos), visto que tools de cálculo e banco vetorial não cumprem esse papel.
+- **Implementação:** Criada a tabela corporativa **`cadastro_fornecedores`** no banco SQLite (`agent1/banco_memoria_contratos.db`), armazenando dados cadastrais, situação fiscal, limite de alçada homologado e histórico de compliance.
+- **Integração:** Disponibilizada a ferramenta `@function_tool consultar_cadastro_fornecedor(cnpj_cpf: str) -> str` no Agente 1, permitindo confrontar a Contratada extraída da minuta contra o cadastro corporativo.
+
+#### B) Dado Estruturado com Documentação Alinhada ao Banco Real
+- **Exigência da Rubrica 12:** Documentar os campos da fonte de negócio e alinhar as tabelas com o banco de dados real (`rag_documentos`, e não `precedentes_contratuais`).
+- **Implementação:** O banco `banco_memoria_contratos.db` possui 3 tabelas reais documentadas com precisão na Seção 6 deste relatório:
+  1. `cadastro_fornecedores`: Fonte estruturada relacional de negócio.
+  2. `rag_documentos`: Vector store com embeddings e metadados (corrigindo a nomenclatura antiga).
+  3. `sessoes_historico`: Histórico de conversação da `SQLiteSession`.
+
+#### C) Fluxo de Dados com Pergunta de Dupla Intenção
+- **Exigência da Rubrica 12:** Um exemplo concreto com pergunta de dupla intenção que acione os dois agentes e apresente dados reais em cada etapa.
+- **Implementação:** Detalhado na Seção 5 deste relatório, demonstrando a pergunta de dupla intenção ("extrair dados da minuta E verificar cadastro corporativo e conformidade de multa"), com os payloads JSON concretos produzidos em cada estágio.
+
+---
+
+## 🏛️ 3. Mapeamento da Estrutura de Pastas do Repositório
 
 ```text
 agente-analise-de-contratos/
 ├── RELATORIO_TECNICO.md            # Este Relatório Técnico Unificado Oficial
+├── README.md                       # Documentação e guia de inicialização
+├── diagrama.md                     # Especificação arquitetural e diagrama Mermaid
+├── diagrama.png                    # Diagrama formal da arquitetura multi-agente
 │
 ├── agent1/                         # PRIMEIRO AGENTE (Extrator Enriquecido de Contratos)
 │   ├── CLAUDE.md                   # Contexto e regras exclusivas do Agente 1
 │   ├── main.py                     # Microsserviço FastAPI (Porta 8001) com BackgroundTasks
-│   ├── agente_extracao.py          # Pipeline central de extração estruturada
-│   ├── tools.py                    # Ferramentas Python de normalização temporal e matemática
+│   ├── agente_extracao.py          # Pipeline de extração estruturada via LLM Real + Runner.run
+│   ├── tools.py                    # Ferramentas Python (@function_tool) de prazos, finanças e cadastro
 │   ├── models.py                   # Schemas Pydantic v2 (DadosContratoExtraido)
-│   ├── memoria_rag.py              # Memória de sessão SQLite e RAG vetorial
-│   ├── contrato_exemplo.txt        # Minuta jurídica de homologação
-│   ├── test_api.py                 # Testes automatizados dos endpoints REST
+│   ├── memoria_rag.py              # Memória de sessão SQLite, banco relacional e RAG vetorial
+│   ├── banco_memoria_contratos.db  # Banco SQLite (cadastro_fornecedores, rag_documentos, sessoes)
+│   ├── contrato_exemplo.txt        # Minuta jurídica 1 (TechSolutions e Alfa Consultoria, R$ 45k)
+│   ├── contrato_exemplo_2.txt      # Minuta jurídica 2 (TechSolutions e CloudCorp, R$ 180k)
+│   ├── pipeline_raciocinio.py      # Pipeline CoT e Least-to-Most com chamadas reais ao LLM
+│   ├── demo_memoria_rag.py         # Validação de SQLiteSession e RAG com chamadas reais
+│   ├── test_api.py                 # Testes automatizados dos endpoints REST (:8001)
 │   └── requirements.txt            # Dependências específicas do Agente 1
 │
 ├── agent2/                         # SEGUNDO AGENTE (Avaliador de Conformidade e Risco)
 │   ├── CLAUDE.md                   # Contexto e regras exclusivas do Agente 2
 │   ├── main.py                     # Microsserviço FastAPI (Porta 8002) com BackgroundTasks
-│   ├── agente_auditoria.py         # Motor de auditoria contra regras corporativas
-│   ├── tools.py                    # Ferramentas Python de checagem de alçadas e multas
+│   ├── agente_auditoria.py         # Motor inteligente de auditoria com Agent e Runner.run
+│   ├── tools.py                    # Ferramenta @function_tool auditar_parametros_contratuais
 │   ├── models.py                   # Schemas Pydantic v2 (RelatorioConformidade)
-│   ├── test_api.py                 # Testes automatizados dos endpoints REST
+│   ├── test_api.py                 # Testes automatizados dos endpoints REST (:8002)
 │   └── requirements.txt            # Dependências específicas do Agente 2
 │
 ├── workflows/                      # WORKFLOWS DO N8N
 │   └── workflow_tp3_agente_extracao.json # Workflow oficial homologado no n8n
 │
 ├── evaluation/                     # PIPELINE DE PROMPTS E AVALIAÇÃO
-│   └── PIPELINE_PROMPTS_CONSOLIDADO.md # Benchmark, diagnóstico e decisão final técnica
+│   ├── avaliacao_metricas_prompt.py # Benchmark A/B real com modelo LLM
+│   ├── comparativo_variantes_prrr.md # Documentação do ciclo PRRR e métricas
+│   ├── PIPELINE_PROMPTS_CONSOLIDADO.md # Diagnóstico técnico e decisão de prompts
+│   └── resultado_avaliacao_metricas.json # Resultados quantitativos gravados
 │
-├── integration/                    # CONTRATOS DE INTERFACE E APIS
-│   └── contrato_api_agentes.md     # Especificação técnica dos endpoints, schemas e estados
-│
-└── docs/                           # DOCUMENTAÇÃO AUXILIAR
-    ├── CONFIGURACAO_AMBIENTE.md    # Detalhamento do ambiente Antigravity + Claude Code
-    └── screenshots/                # Evidências visuais de execução
-```
-
----
-
-## 💻 3. Configuração do Ambiente de Trabalho: Antigravity + Agente de Código
-
-### 3.1 Alternativa Escolhida e Justificativa
-
-Adotou-se a integração do **Antigravity IDE** integrado ao **Claude Code CLI** (v2.1.233) operando diretamente no terminal integrado PowerShell, com suporte de roteamento flexível via **9Router** para alocação eficiente de modelos de IA e tokens do plano Google AI Pro.
-
-#### Justificativas Técnicas:
-1. **Produtividade e Baixa Fricção:** O Antigravity unifica visualização de diffs, navegação na árvore de arquivos, visualização de diagramas Mermaid e controle de terminais integrados. O Claude Code atua diretamente no shell com acesso imediato ao contexto do projeto.
-2. **Context Engineering Nativo:** A arquitetura do projeto utiliza arquivos `CLAUDE.md` dedicados por agente/diretório. O Claude Code lê automaticamente o `CLAUDE.md` do diretório em que é aberto, restringindo seu escopo às regras daquele microsserviço.
-3. **Fluxo Sequencial e Seguro:** A interface de edição visual no Antigravity e a interação executiva no Claude Code evitam qualquer conflito de concorrência na escrita de arquivos.
-
-### 3.2 Especificações do Ambiente
-
-| Componente | Versão / Detalhes | Localização / Função |
-| :--- | :--- | :--- |
-| **IDE Principal** | Antigravity IDE (Windows 11) | Workspace `agente-analise-de-contratos` |
-| **Agente de Código CLI** | Claude Code v2.1.233 | `C:\Users\dudap\AppData\Roaming\npm\claude.ps1` |
-| **Roteador Opcional** | 9Router CLI (`localhost:20128`) | Proxy gateway intermediário para LLMs |
-| **Modelo Ativo no 9Router** | `ag/gpt-oss-120b-medium` | LLM de alta fidelidade com suporte a raciocínio |
-| **Python Runtime** | Python 3.14 (`.venv`) | FastAPI, Uvicorn, Pydantic v2, OpenAI Agents SDK |
-| **Orquestrador de Workflows** | n8n (v1.x) em container Docker | Porta 5678 (`localhost:5678`) |
-
-### 3.3 Variáveis de Ambiente Configuradas:
-As variáveis de integração com o gateway local do 9Router são carregadas a partir do arquivo `.env`:
-
-```powershell
-$env:ANTHROPIC_BASE_URL = "http://localhost:20128/v1"
-$env:ANTHROPIC_MODEL    = "ag/gpt-oss-120b-medium"
-# ANTHROPIC_API_KEY gerenciada via .env
+└── integration/                    # CONTRATOS DE INTERFACE E APIS
+    └── contrato_api_agentes.md     # Especificação técnica dos endpoints e payloads
 ```
 
 ---
 
 ## 🔌 4. Documentação das APIs REST dos Dois Agentes
 
-Ambos os agentes foram transformados em serviços HTTP padronizados usando **FastAPI** e **`BackgroundTasks`**, garantindo execução assíncrona não-bloqueante com o padrão **`202 Accepted`** e polling em `/status`.
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        ARQUITETURA DOS AGENTES                         │
-│                                                                        │
-│   ┌───────────────────────────────┐  ┌───────────────────────────────┐ │
-│   │   Agente 1: Extrator (:8001)  │  │ Agente 2: Conformidade (:8002)│ │
-│   │                               │  │                               │ │
-│   │ • POST /run (202 Accepted)    │  │ • POST /run (202 Accepted)    │ │
-│   │ • GET /status/{task_id}       │  │ • GET /status/{task_id}       │ │
-│   │ • BackgroundTasks             │  │ • BackgroundTasks             │ │
-│   │ • Schema: DadosContratoExtraido│ │ • Schema: RelatorioConformidade│
-│   │ • Tools de Prazos e Finanças  │  │ • Tools de Multas e Alçadas   │ │
-│   └───────────────────────────────┘  └───────────────────────────────┘ │
-│                               ▲                      ▲                 │
-│                               │                      │                 │
-│                 Chamada HTTP  │                      │  Chamada HTTP   │
-│                 desacoplada   │                      │  desacoplada    │
-│                               └──────────┬───────────┘                 │
-│                                          │                             │
-│                         ┌────────────────┴────────────────┐            │
-│                         │        n8n Orquestrador         │            │
-│                         │     (Coordenação Externa)       │            │
-│                         └─────────────────────────────────┘            │
-└────────────────────────────────────────────────────────────────────────┘
-```
+Ambos os agentes operam como microsserviços HTTP padronizados usando **FastAPI** e **`BackgroundTasks`**, garantindo execução não-bloqueante com o padrão **`202 Accepted`** e polling em `/status/{task_id}`.
 
 ### 4.1 Agente 1: Extrator Enriquecido de Contratos (Porta `8001`)
 
-- **Responsabilidade:** Extração de metadados factuais (partes, objeto, prazos, valores, penalidades) com ferramentas Python determinísticas.
-- **Ferramentas Nativas (`tools.py`):**
-  - `normalizar_prazos_e_datas`: Converte datas para ISO-8601 (`YYYY-MM-DD`), calcula prazo de término somando meses de vigência e apura dias corridos e prazo de aviso prévio.
-  - `extrair_e_validar_tabela_financeira`: Multiplica parcelas por valor unitário, confronta com o total e calcula discrepâncias centesimais.
+- **Endpoints:**
+  - `POST /run`: Dispara a extração assíncrona recebendo `{"texto_contrato": "..."}`. Retorna `202 Accepted` com `task_id`.
+  - `GET /status/{task_id}`: Retorna status (`pending`, `done`, `error`) e o payload validado `DadosContratoExtraido`.
+  - `GET /health`: Healthcheck do serviço.
 
-#### Especificação dos Endpoints — Agente 1:
-- **`POST /run`:**
-  - **Status:** `202 Accepted`
-  - **Entrada (JSON):** `{"texto_contrato": "Texto integral da minuta..."}`
-  - **Saída Imediata (JSON):**
-    ```json
-    {
-      "task_id": "ca1bae57-cb6d-4451-8778-d4b2326ebbca",
-      "status": "pending",
-      "message": "Processamento de extração iniciado com sucesso em segundo plano."
-    }
-    ```
-- **`GET /status/{task_id}`:**
-  - **Status:** `200 OK` (ou `404 Not Found` se `task_id` inexistente)
-  - **Estados:** `pending`, `done`, `error`.
-  - **Saída Concluída (JSON):**
-    ```json
-    {
-      "task_id": "ca1bae57-cb6d-4451-8778-d4b2326ebbca",
-      "status": "done",
-      "created_at": 1792438112.03,
-      "completed_at": 1792438112.04,
-      "data": {
-        "titulo": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
-        "contratante": { "nome": "Empresa Contratante S.A.", "cnpj_cpf": "98.765.432/0001-10", "papel": "CONTRATANTE" },
-        "contratada": { "nome": "TechSolutions Ltda.", "cnpj_cpf": "12.345.678/0001-90", "papel": "CONTRATADA" },
-        "objeto": "Desenvolvimento, homologação e implantação de agentes inteligentes integrados a sistemas legados.",
-        "financeiro": {
-          "moeda": "BRL", "valor_total_brl": 120000.0, "parcelas_quantidade": 12, "valor_parcela_brl": 10000.0,
-          "periodicidade": "mensal", "soma_consistente": true, "discrepancia_centavos": 0.0,
-          "cronograma_resumo": "12 parcelas de R$ 10,000.00 (mensal)"
-        },
-        "vigencia": {
-          "data_inicio_iso": "2026-01-15", "data_fim_calculada_iso": "2027-01-15",
-          "vigencia_meses": 12, "dias_corridos_totais": 365, "aviso_previo_dias": 30,
-          "vigencia_formatada": "De 2026-01-15 a 2027-01-15 (12 meses / 365 dias)"
-        },
-        "penalidades": {
-          "percentual_multa_rescisoria": 20.0, "base_calculo": "saldo remanescente do contrato",
-          "gatilho_aplicacao": "rescisao_imotivada_sem_justa_causa"
-        },
-        "secoes_analisadas": ["PREAMBULO", "OBJETO", "PRECO_E_CONDICOES", "VIGENCIA", "RESCISAO_E_PENALIDADES"]
-      },
-      "error": null
-    }
-    ```
+- **Payload Real de Saída (`GET /status/{task_id}`) gerado pelo Agente 1:**
+```json
+{
+  "task_id": "853f61da-d864-4b62-8579-b77130c85501",
+  "status": "done",
+  "created_at": 1794338422.51,
+  "completed_at": 1794338436.51,
+  "data": {
+    "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
+    "contratante": {
+      "nome": "TechSolutions Ltda.",
+      "cnpj_cpf": "12.345.678/0001-90",
+      "papel": "CONTRATANTE"
+    },
+    "contratada": {
+      "nome": "Alfa Consultoria em IA S.A.",
+      "cnpj_cpf": "98.765.432/0001-10",
+      "papel": "CONTRATADA"
+    },
+    "objeto": "Prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
+    "financeiro": {
+      "moeda": "BRL",
+      "valor_total_brl": 45000.0,
+      "parcelas_quantidade": 3,
+      "valor_parcela_brl": 15000.0,
+      "periodicidade": "mensal",
+      "soma_consistente": true,
+      "discrepancia_centavos": 0.0,
+      "cronograma_resumo": "3 parcelas de R$ 15.000,00, primeira em 15/09/2026"
+    },
+    "vigencia": {
+      "data_inicio_iso": "2026-09-01",
+      "data_fim_calculada_iso": "2027-03-01",
+      "vigencia_meses": 6,
+      "dias_corridos_totais": 181,
+      "aviso_previo_dias": 30,
+      "vigencia_formatada": "01/09/2026 a 01/03/2027"
+    },
+    "penalidades": {
+      "percentual_multa_rescisoria": 20.0,
+      "base_calculo": "valor remanescente do contrato",
+      "gatilho_aplicacao": "rescisão imotivada"
+    },
+    "fornecedor_homologado": {
+      "cnpj": "98.765.432/0001-10",
+      "razao_social": "Alfa Consultoria em IA S.A.",
+      "situacao_cadastral": "ATIVA",
+      "score_compliance": 88.5,
+      "limite_alcada_brl": 150000.0,
+      "categoria_risco": "MEDIO",
+      "restricoes_juridicas": "Histórico de renegociação de multa rescisória em aditivo prévio (2025). Homologada com ressalva contratual."
+    },
+    "secoes_analisadas": ["PREAMBULO", "OBJETO", "CONDICOES_FINANCEIRAS", "PRAZOS_E_VIGENCIA", "PENALIDADES"]
+  },
+  "error": null
+}
+```
 
 ---
 
 ### 4.2 Agente 2: Avaliador de Conformidade e Risco (Porta `8002`)
 
-- **Responsabilidade:** Receber o JSON estruturado emitido pelo Agente 1 (via n8n), confrontar as cláusulas contra a base de governança corporativa, calcular score de conformidade e emitir parecer executivo tipado.
-- **Ferramentas Nativas (`tools.py`):**
-  - `auditar_parametros_contratuais_fn`: Confronta o percentual de multa com o teto padrão de 10%, audita a alçada de aprovação gerencial (teto de R$ 100.000,00 — acima exige ratificação da Diretoria) e verifica o aviso prévio mínimo (30 dias).
-  - `consultar_base_regras_negocio_fn`: Fornece a matriz de diretrizes corporativas vigentes.
+- **Endpoints:**
+  - `POST /run`: Dispara a auditoria assíncrona recebendo `{"dados_contrato": {...}}`. Retorna `202 Accepted` com `task_id`.
+  - `GET /status/{task_id}`: Retorna status e o modelo tipado `RelatorioConformidade`.
+  - `GET /health`: Healthcheck do serviço.
 
-#### Especificação dos Endpoints — Agente 2:
-- **`POST /run`:**
-  - **Status:** `202 Accepted`
-  - **Entrada (JSON):** `{"dados_contrato": {...}}` (payload gerado pelo Agente 1)
-  - **Saída Imediata (JSON):**
-    ```json
-    {
-      "task_id": "d6b391b8-3895-4388-a3dc-0e7e426d30bc",
-      "status": "pending",
-      "message": "Auditoria de conformidade iniciada com sucesso em segundo plano."
-    }
-    ```
-- **`GET /status/{task_id}`:**
-  - **Status:** `200 OK` (ou `404 Not Found` se `task_id` inexistente)
-  - **Saída Concluída (JSON):**
-    ```json
-    {
-      "task_id": "d6b391b8-3895-4388-a3dc-0e7e426d30bc",
-      "status": "done",
-      "created_at": 1792438113.58,
-      "completed_at": 1792438113.58,
-      "data": {
-        "contrato_titulo": "Contrato de Prestação de Serviços de Desenvolvimento de Inteligência Artificial",
-        "score_conformidade": 73.33,
-        "nivel_risco_geral": "MEDIO",
-        "total_regras_auditadas": 3,
-        "itens_conformes": 1,
-        "itens_alerta": 2,
-        "itens_nao_conformes": 0,
-        "itens_auditados": [
-          {
-            "regra": "Teto de Multa Rescisória",
-            "status": "ALERTA",
-            "nivel_risco": "MEDIO",
-            "descricao_analise": "Multa rescisória fixada em 20.0%, superando a diretriz de governança recomendada de até 10.0%...",
-            "fundamentacao": "Política Interna de Riscos Contratuais (Cap. IV, Art. 12)..."
-          },
-          {
-            "regra": "Alçada de Aprovação Financeira",
-            "status": "ALERTA",
-            "nivel_risco": "ALTO",
-            "descricao_analise": "Valor global do contrato (R$ 120,000.00) excede a alçada gerencial (R$ 100,000.00)...",
-            "fundamentacao": "Manual de Alçadas e Governança Financeira - Alçada Nível 1."
-          },
-          {
-            "regra": "Prazo Mínimo de Aviso Prévio",
-            "status": "CONFORME",
-            "nivel_risco": "BAIXO",
-            "descricao_analise": "Aviso prévio pactuado (30 dias) atende integralmente ao requisito de segurança.",
-            "fundamentacao": "Diretriz Operacional de Continuidade de Negócios."
-          }
-        ],
-        "recomendacoes_mitigacao": [
-          "Negociar redução da cláusula penal para o patamar padrão de até 10%.",
-          "Submeter o contrato à assinatura conjunta da Diretoria Executiva."
-        ],
-        "parecer_executivo_markdown": "# Parecer de Conformidade e Risco Contratual..."
+- **Payload Real de Saída (`GET /status/{task_id}`) gerado pelo Agente 2:**
+```json
+{
+  "task_id": "0a9ff2c9-a1f8-4cf9-a982-334839496eac",
+  "status": "done",
+  "created_at": 1794338663.58,
+  "completed_at": 1794338686.55,
+  "data": {
+    "contrato_titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
+    "score_conformidade": 85.0,
+    "nivel_risco_geral": "MEDIO",
+    "total_regras_auditadas": 4,
+    "itens_conformes": 3,
+    "itens_alerta": 1,
+    "itens_nao_conformes": 0,
+    "itens_auditados": [
+      {
+        "regra": "Teto de Multa Rescisória",
+        "status": "ALERTA",
+        "nivel_risco": "MEDIO",
+        "descricao_analise": "Multa rescisória fixada em 20.0%, superando a diretriz de governança recomendada de até 10.0% sobre o saldo remanescente.",
+        "fundamentacao": "Política Interna de Riscos Contratuais e Jurisprudência Cível (Art. 413 CC)."
       },
-      "error": null
-    }
-    ```
-
----
-
-## 📑 5. Governança e Context Engineering com `CLAUDE.md` por Agente
-
-Para impedir o acoplamento monolítico, **foi removido qualquer arquivo `CLAUDE.md` centralizado na raiz**. Cada agente possui seu próprio arquivo com diretrizes exclusivas:
-
-### 5.1 [`agent1/CLAUDE.md`](agent1/CLAUDE.md) — Agente 1 (Extração)
-- **Fronteira Estrita (*Boundary Enforcement*):** O Agente 1 é proibido de emitir juízos de risco ou pareceres de conformidade corporativa. Seu escopo é 100% factual e matemático.
-- **Modelagem Tipada:** Define o schema Pydantic v2 `DadosContratoExtraido`.
-- **Instruções Operacionais:** Comandos para rodar o Uvicorn na porta 8001 e executar `test_api.py`.
-
-### 5.2 [`agent2/CLAUDE.md`](agent2/CLAUDE.md) — Agente 2 (Conformidade)
-- **Fronteira Estrita (*Boundary Enforcement*):** O Agente 2 é proibido de fazer parsing de texto bruto ou invocar o Agente 1 diretamente. Opera unicamente sobre os dados estruturados entregues pelo orquestrador.
-- **Modelagem Tipada:** Define o schema Pydantic v2 `RelatorioConformidade` com checagem quantitativa estrita (`@model_validator`).
-- **Instruções Operacionais:** Comandos para rodar o Uvicorn na porta 8002 e executar `test_api.py`.
-
----
-
-## 🔬 6. Consolidação Definitiva do Pipeline de Prompts e Avaliação
-
-O documento formal [`evaluation/PIPELINE_PROMPTS_CONSOLIDADO.md`](evaluation/PIPELINE_PROMPTS_CONSOLIDADO.md) encerra o ciclo de refinamento de prompts do projeto.
-
-### 6.1 Critérios de Avaliação e Métricas
-
-| Métrica | Sigla | Peso | Critério Avaliado |
-| :--- | :---: | :---: | :--- |
-| **Taxa de Conformidade de Schema** | **TCS** | **30%** | Validação estrita perante os schemas Pydantic v2. |
-| **Taxa de Invocação de Tools** | **TIT** | **30%** | Chamada mandante a funções determinísticas em Python. |
-| **Acurácia Factual de Entidades** | **AFC** | **20%** | Exatidão de nomes, CNPJs, valores e cláusulas extraídas. |
-| **Acurácia de Sanitização e Cálculo** | **ASC** | **20%** | Resolução correta no calendário ISO-8601 e soma de parcelas. |
-
-$$\text{IGQ} = (0.30 \times \text{TCS}) + (0.30 \times \text{TIT}) + (0.20 \times \text{AFC}) + (0.20 \times \text{ASC})$$
-
-### 6.2 Matriz Evolutiva das Variantes Testadas
-
-| Métrica | V1 (Monolítico / Zero-Shot) | V2 (Anatômico com Few-Shot) | V3 (CoT Encadeado) | V4 Definitiva (Tools + Pydantic v2) |
-| :--- | :---: | :---: | :---: | :---: |
-| **TCS** (Conformidade de Schema) | `0.00` | `0.60` | `0.85` | **`1.00`** |
-| **TIT** (Invocação de Ferramentas) | `0.00` | `0.00` | `0.50` | **`1.00`** |
-| **AFC** (Acurácia Factual) | `0.50` | `0.80` | `0.95` | **`1.00`** |
-| **ASC** (Sanitização e Cálculo) | `0.00` | `0.20` | `0.70` | **`1.00`** |
-| **Índice Geral de Qualidade (IGQ)** | **`0.150`** | **`0.440`** | **`0.785`** | **`1.000` (+566%)** |
-
-### 6.3 Diagnóstico de Prompts Ineficazes e Correções
-
-1. **Ambiguidade de Formato e Datas Relativas:**
-   - *Falha:* Repetição discursiva de datas relativas como `"12 meses a partir de 15/01/2026"`.
-   - *Correção:* Imposição de schema estrito e delegação à tool `normalizar_prazos_e_datas` (`2027-01-15`, 365 dias corridos).
-2. **Ilusão Aritmética (*Arithmetic Hallucination*):**
-   - *Falha:* O modelo errava a multiplicação de parcelas fracionadas e atestava falsamente consistência matemática sem validar centavos.
-   - *Correção:* Proibição de cálculo mental no prompt e delegação mandatória para a tool `@function_tool extrair_e_validar_tabela_financeira`.
-3. **Vazamento de Escopo (*Scope Bleed*):**
-   - *Falha:* O Agente 1 começava a julgar riscos e emitir opiniões sobre cláusulas penais abusivas, quebrando a separação de microsserviços.
-   - *Correção:* Imposição de *Boundary Enforcement* explícito no prompt do sistema: *"NÃO emita julgamentos de risco ou conformidade; essa competência pertence ao Agente 2"*.
-
----
-
-## 🔄 7. Primeiro Workflow n8n e Orquestração Futura (TP4)
-
-### 7.1 Workflow n8n Homologado ([`workflows/workflow_tp3_agente_extracao.json`](workflows/workflow_tp3_agente_extracao.json))
-
-Construído, executado e exportado diretamente no n8n:
-1. **Trigger Manual (`When clicking ‘Execute workflow’`):** Ponto de disparo para execução sob demanda.
-2. **Nó `HTTP Request` (`POST /run`):** Envia a minuta para `http://172.17.0.1:8001/run` e recebe imediatamente `202 Accepted` com `task_id` e status `pending`.
-3. **Nó `Wait`:** Pausa de 2 segundos para o processamento assíncrono.
-4. **Nó `HTTP Request1` (`GET /status/{task_id}`):** Consulta `http://172.17.0.1:8001/status/{{ $json.task_id }}` e captura o JSON tipado com os dados extraídos (`DadosContratoExtraido`).
-
-### 7.2 Orquestração Multi-Agente no TP4
-
-No **TP4**, o n8n assumirá o papel de orquestrador determinístico completo através do padrão **Saga / Polling Assíncrono**, conectando os dois agentes de ponta a ponta sem qualquer acoplamento de código direto:
-
-```mermaid
-flowchart TD
-    subgraph Trigger
-        A[Webhook / Chatbot Input] --> B[n8n: Sanitização e Recepção]
-    end
-
-    subgraph Pipeline_Agente_1 [Microsserviço 1: Extração]
-        B --> C[HTTP Request: POST :8001/run]
-        C --> D[Captura task_id_1 com status 202]
-        D --> E[Loop de Polling: GET :8001/status]
-        E -->|status == done| F[Payload Estruturado: DadosContratoExtraido]
-    end
-
-    subgraph n8n_Data_Mapping [Mapeamento Determinístico n8n]
-        F --> G[n8n Node: Injeta dados_contrato = $json.data]
-    end
-
-    subgraph Pipeline_Agente_2 [Microsserviço 2: Conformidade e Risco]
-        G --> H[HTTP Request: POST :8002/run]
-        H --> I[Captura task_id_2 com status 202]
-        I --> J[Loop de Polling: GET :8002/status]
-        J -->|status == done| K[Relatório Tipado: RelatorioConformidade]
-    end
-
-    subgraph Saida_Consolidada [Consolidação Final]
-        K --> L[n8n: Compila Metadados + Parecer Markdown]
-        L --> M[Nó de Saída: Telegram / Webhook / DB]
-    end
+      {
+        "regra": "Alçada de Aprovação Financeira",
+        "status": "CONFORME",
+        "nivel_risco": "BAIXO",
+        "descricao_analise": "Valor de R$ 45.000,00 dentro da alçada operacional regular (abaixo de R$ 100.000,00).",
+        "fundamentacao": "Manual de Alçadas e Governança Financeira."
+      },
+      {
+        "regra": "Prazo Mínimo de Aviso Prévio",
+        "status": "CONFORME",
+        "nivel_risco": "BAIXO",
+        "descricao_analise": "Aviso prévio pactuado (30 dias) atende integralmente ao requisito de segurança.",
+        "fundamentacao": "Diretriz Operacional de Continuidade de Negócios."
+      },
+      {
+        "regra": "Regularidade Cadastral do Fornecedor",
+        "status": "CONFORME",
+        "nivel_risco": "BAIXO",
+        "descricao_analise": "Fornecedor homologado ativo com score de compliance de 88.5/100.",
+        "fundamentacao": "Cadastro Corporativo de Fornecedores Homologados."
+      }
+    ],
+    "recomendacoes_mitigacao": [
+      "Negociar a redução da multa rescisória de 20% para 10%, alinhando ao precedente histórico (Aditivo nº 1 de 2025 da Alfa Consultoria).",
+      "Manter o acompanhamento do fornecedor haja vista a categoria de risco MÉDIO registrada na fonte estruturada."
+    ],
+    "parecer_executivo_markdown": "# Parecer de Conformidade e Risco Contratual\n**Instrumento:** CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\n**Score de Compliance:** 85.0 / 100.0\n**Classificação de Risco:** MEDIO\n..."
+  },
+  "error": null
+}
 ```
 
 ---
 
-## 🏆 8. Checklist Consolidado de Entregáveis
+## 🔄 5. Fluxo de Dados com Pergunta de Dupla Intenção (Rubrica 12)
+
+Para cumprir integralmente a Rubrica 12, demonstramos o fluxo de dados disparado por uma **pergunta de dupla intenção** que mobiliza ambos os agentes de forma encadeada e orquestrada.
+
+### 5.1 Pergunta de Dupla Intenção
+> **Pergunta:**  
+> *"Por favor, extraia os dados essenciais da minuta contratual em anexo com a Alfa Consultoria em IA S.A. (valores, número de parcelas, vigência e penalidades) **E** verifique se o fornecedor possui situação cadastral regular na nossa base interna e se a multa rescisória de 20% atende às diretrizes corporativas da TechSolutions."*
+
+### 5.2 Decomposição das Intenções e Execução dos Agentes
+1. **Intenção 1 (Extração, Normalização e Consulta Cadastral):**
+   - **Agente Acionado:** Agente 1 (Extrator Enriquecido).
+   - **Execução Real:** O Agente 1 lê o texto da minuta, invoca a tool `normalizar_prazos_e_datas` (início `2026-09-01`, fim `2027-03-01`), invoca a tool `extrair_e_validar_tabela_financeira` (3 parcelas de R$ 15.000,00 = R$ 45.000,00) e consulta a tabela `cadastro_fornecedores` via `consultar_cadastro_fornecedor` para o CNPJ `98.765.432/0001-10`.
+   - **Dado Produzido:** Payload estruturado `DadosContratoExtraido` (apresentado na subseção 4.1).
+2. **Intenção 2 (Auditoria de Risco e Análise de Conformidade):**
+   - **Agente Acionado:** Agente 2 (Avaliador de Risco).
+   - **Execução Real:** O orquestrador repassa o JSON do Agente 1 ao Agente 2. O Agente 2 executa a tool `@function_tool auditar_parametros_contratuais`, identifica que a multa de 20% ultrapassa o teto de 10% corporativo (gerando ALERTA), confirma que o valor de R$ 45.000,00 está dentro da alçada e valida que o fornecedor está ATIVO com score 88.5/100.
+   - **Dado Produzido:** Relatório executivo tipado `RelatorioConformidade` (apresentado na subseção 4.2).
+
+### 5.3 Resposta Final Consolidada Entregue ao Usuário
+```markdown
+### Síntese da Análise Contratual (Dupla Intenção Atendida)
+
+**1. Dados Extraídos do Contrato:**
+- **Partes:** TechSolutions Ltda. (Contratante) e Alfa Consultoria em IA S.A. (Contratada - CNPJ 98.765.432/0001-10).
+- **Objeto:** Desenvolvimento, integração e suporte de sistema de inteligência artificial multi-agentes.
+- **Condições Financeiras:** R$ 45.000,00 em 3 parcelas mensais de R$ 15.000,00 (100% íntegro matematicamente).
+- **Vigência:** 6 meses, de 01/09/2026 a 01/03/2027 (181 dias corridos), aviso prévio de 30 dias.
+- **Penalidade Contratual:** Multa de 20% sobre o saldo remanescente em caso de rescisão imotivada.
+
+**2. Diagnóstico de Governança e Cadastro Corporativo:**
+- **Situação do Fornecedor:** O fornecedor Alfa Consultoria em IA S.A. está **ATIVO** na base estruturada corporativa com Score de Compliance de **88.5/100** e limite de alçada homologado de R$ 150.000,00.
+- **Auditoria de Multa Rescisória:** **ALERTA (Risco Médio)**. A multa proposta de 20% excede o teto corporativo tolerado de 10%.
+- **Recomendação:** Negociar a redução da multa para 10%, aplicando o precedente corporativo registrado no Aditivo nº 1 de 2025 já firmado com a própria Alfa Consultoria.
+```
+
+---
+
+## 💾 6. Dados Estruturados (Tabelas Reais no SQLite)
+
+O banco relacional do sistema está localizado em:  
+📂 **`agent1/banco_memoria_contratos.db`**
+
+### 6.1 Tabela `cadastro_fornecedores` (Fonte Estruturada de Negócio)
+Armazena a base cadastral corporativa homologada:
+
+```sql
+CREATE TABLE IF NOT EXISTS cadastro_fornecedores (
+    cnpj TEXT PRIMARY KEY,
+    razao_social TEXT NOT NULL,
+    nome_fantasia TEXT,
+    situacao_cadastral TEXT NOT NULL,
+    score_compliance REAL NOT NULL,
+    limite_alcada_brl REAL NOT NULL,
+    categoria_risco TEXT NOT NULL,
+    data_homologacao TEXT NOT NULL,
+    restricoes_juridicas TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+- **Registros Homologados:**
+  1. `98.765.432/0001-10` — *Alfa Consultoria em IA S.A.* (Ativa, Score 88.5, Alçada R$ 150k, Risco Médio).
+  2. `12.345.678/0001-90` — *TechSolutions Ltda.* (Ativa, Score 96.0, Alçada R$ 500k, Risco Baixo).
+  3. `23.456.789/0001-01` — *CloudCorp Soluções Digitais Ltda.* (Ativa, Score 91.0, Alçada R$ 300k, Risco Baixo).
+  4. `99.888.777/0001-66` — *FraudeTech Serviços Suspensos ME* (Suspensa no CEIS, Score 25.0, Alçada R$ 0, Risco Alto).
+
+### 6.2 Tabela `rag_documentos` (Vector Store com Embeddings)
+> [!NOTE]
+> A tabela do banco SQLite responsável pela busca semântica é denominada **`rag_documentos`** (e não `precedentes_contratuais`, alinhando a documentação rigorosamente com o código).
+
+```sql
+CREATE TABLE IF NOT EXISTS rag_documentos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    documento_id TEXT UNIQUE NOT NULL,
+    titulo TEXT NOT NULL,
+    conteudo TEXT NOT NULL,
+    categoria TEXT NOT NULL,
+    metadados TEXT NOT NULL,
+    vetor_embedding TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 6.3 Tabela `sessoes_historico` (Memória Persistente SQLiteSession)
+Mantém o histórico conversacional da `SQLiteSession`:
+
+```sql
+CREATE TABLE IF NOT EXISTS sessoes_historico (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    item_data TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## 🔬 7. Consolidação Definitiva do Pipeline de Prompts e Avaliação A/B Real
+
+O benchmark comparativo foi refeito com **execuções 100% REAIS** através do script [`evaluation/avaliacao_metricas_prompt.py`](evaluation/avaliacao_metricas_prompt.py) sobre a minuta real [`agent1/contrato_exemplo.txt`](agent1/contrato_exemplo.txt):
+
+### 7.1 Métricas Utilizadas
+
+$$\text{IGQ} = (0.30 \times \text{TCS}) + (0.30 \times \text{TIT}) + (0.20 \times \text{AFC}) + (0.20 \times \text{ASC})$$
+
+### 7.2 Tabela de Resultados Reais Gravados
+
+| Métrica | Variante A (Prompt Monolítico / LLM Real) | Variante B (Agente Estruturado + Tools / Runner.run) | Ganho |
+| :--- | :---: | :---: | :---: |
+| **TCS** (Conformidade de Schema) | `0.00` | `1.00` | **+1.00** |
+| **TIT** (Invocação de Ferramentas) | `0.00` | `1.00` | **+1.00** |
+| **AFC** (Acurácia Factual) | `1.00` | `1.00` | **0.00** |
+| **ASC** (Sanitização e Cálculo) | `0.00` | `1.00` | **+1.00** |
+| **Índice Geral de Qualidade (IGQ)** | **`0.200`** | **`1.000`** | **+0.800 (+400%)** |
+
+- **Decisão Técnica Justificada:** Adoção mandatória da Variante B. Enquanto a Variante A produz prosa livre que não aciona ferramentas nem gera chaves consumíveis por APIs, a Variante B atinge conformidade total (IGQ = 1.000) e alimenta deterministicamente o Agente 2.
+
+---
+
+## 🔄 8. Workflow n8n Homologado ([`workflows/workflow_tp3_agente_extracao.json`](workflows/workflow_tp3_agente_extracao.json))
+
+1. **Trigger:** `When clicking ‘Execute workflow’`.
+2. **Nó `HTTP Request` (`POST /run`):** Envia a minuta para o Agente 1 e recebe `202 Accepted` imediato com `task_id`.
+3. **Nó `Wait`:** Aguarda 2 segundos para processamento em background.
+4. **Nó `HTTP Request1` (`GET /status/{task_id}`):** Consulta o status e captura o payload `DadosContratoExtraido`.
+
+---
+
+## 🏆 9. Checklist Consolidado de Entregáveis
 
 | Entregável | Localização no Repositório | Status |
 | :--- | :--- | :---: |
-| **Código do Agente 1 (FastAPI + BackgroundTasks)** | [`agent1/`](agent1/) | ✅ Homologado |
-| **CLAUDE.md do Agente 1 (Context Engineering)** | [`agent1/CLAUDE.md`](agent1/CLAUDE.md) | ✅ Concluído |
-| **Código do Agente 2 (FastAPI + Tools + Pydantic v2)** | [`agent2/`](agent2/) | ✅ Homologado |
-| **CLAUDE.md do Agente 2 (Context Engineering)** | [`agent2/CLAUDE.md`](agent2/CLAUDE.md) | ✅ Concluído |
-| **Workflow n8n Exportado em JSON** | [`workflows/workflow_tp3_agente_extracao.json`](workflows/workflow_tp3_agente_extracao.json) | ✅ Exportado |
-| **Avaliação Final do Pipeline de Prompts** | [`evaluation/PIPELINE_PROMPTS_CONSOLIDADO.md`](evaluation/PIPELINE_PROMPTS_CONSOLIDADO.md) | ✅ Concluído |
-| **Contrato de API dos Dois Agentes** | [`integration/contrato_api_agentes.md`](integration/contrato_api_agentes.md) | ✅ Documentado |
-| **Relatório Técnico Unificado** | [`RELATORIO_TECNICO.md`](RELATORIO_TECNICO.md) | ✅ Finalizado |
-| **Link do Repositório GitHub** | [MariaEduardaMendes/agente-analise-de-contratos](https://github.com/MariaEduardaMendes/agente-analise-de-contratos) | ✅ Disponível |
+| **Agente 1 Real (Runner.run + Tools + Pydantic v2)** | [`agent1/agente_extracao.py`](agent1/agente_extracao.py) | ✅ Validado com Modelo Real |
+| **Agente 2 Real (Runner.run + @function_tool + RelatorioConformidade)** | [`agent2/agente_auditoria.py`](agent2/agente_auditoria.py) | ✅ Validado com Modelo Real |
+| **Fonte Estruturada de Negócio (`cadastro_fornecedores`)** | [`agent1/memoria_rag.py`](agent1/memoria_rag.py) | ✅ Banco SQLite Populado |
+| **Fluxo com Pergunta de Dupla Intenção e Dados Concretos** | [`diagrama.md`](diagrama.md) e [`RELATORIO_TECNICO.md`](RELATORIO_TECNICO.md) | ✅ Documentado |
+| **Dado Estruturado com Documentação Alinhada (`rag_documentos`)** | [`diagrama.md`](diagrama.md) e [`RELATORIO_TECNICO.md`](RELATORIO_TECNICO.md) | ✅ Alinhado ao Banco Real |
+| **Memória Persistente SQLiteSession (Runner.run com session)** | [`agent1/demo_memoria_rag.py`](agent1/demo_memoria_rag.py) | ✅ Validado com Modelo Real |
+| **Raciocínio Encadeado Least-to-Most + CoT com LLM Real** | [`agent1/pipeline_raciocinio.py`](agent1/pipeline_raciocinio.py) | ✅ Validado com Modelo Real |
+| **Benchmark A/B Real com Métricas e JSON** | [`evaluation/avaliacao_metricas_prompt.py`](evaluation/avaliacao_metricas_prompt.py) | ✅ Executado e Salvo |
+| **APIs REST FastAPI com BackgroundTasks e Testes** | [`agent1/test_api.py`](agent1/test_api.py), [`agent2/test_api.py`](agent2/test_api.py) | ✅ 100% Aprovados |
+| **CLAUDE.md por Agente (Context Engineering)** | [`agent1/CLAUDE.md`](agent1/CLAUDE.md), [`agent2/CLAUDE.md`](agent2/CLAUDE.md) | ✅ Concluído |
+| **Workflow n8n Exportado** | [`workflows/workflow_tp3_agente_extracao.json`](workflows/workflow_tp3_agente_extracao.json) | ✅ Exportado |
+| **Contrato de API e Interfaces** | [`integration/contrato_api_agentes.md`](integration/contrato_api_agentes.md) | ✅ Concluído |

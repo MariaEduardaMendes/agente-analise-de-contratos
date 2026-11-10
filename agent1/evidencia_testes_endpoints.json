@@ -1,0 +1,84 @@
+{
+  "post_run": {
+    "endpoint": "POST /run",
+    "status_code": 202,
+    "request_payload": {
+      "texto_contrato": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\n\nPelo presente instrumento particular, d... [truncado]"
+    },
+    "response_body": {
+      "task_id": "a5d4ecee-ccdd-46d7-932f-2f359bc8d6dc",
+      "status": "pending",
+      "message": "Processamento de extração iniciado com sucesso em segundo plano."
+    }
+  },
+  "get_status_done": {
+    "endpoint": "GET /status/a5d4ecee-ccdd-46d7-932f-2f359bc8d6dc",
+    "status_code": 200,
+    "response_body": {
+      "task_id": "a5d4ecee-ccdd-46d7-932f-2f359bc8d6dc",
+      "status": "done",
+      "created_at": 1794338927.817361,
+      "completed_at": 1794338939.868608,
+      "data": {
+        "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
+        "contratante": {
+          "nome": "TechSolutions Ltda.",
+          "cnpj_cpf": "12.345.678/0001-90",
+          "papel": "CONTRATANTE"
+        },
+        "contratada": {
+          "nome": "Alfa Consultoria em IA S.A.",
+          "cnpj_cpf": "98.765.432/0001-10",
+          "papel": "CONTRATADA"
+        },
+        "objeto": "Desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
+        "financeiro": {
+          "moeda": "R$",
+          "valor_total_brl": 45000.0,
+          "parcelas_quantidade": 3,
+          "valor_parcela_brl": 15000.0,
+          "periodicidade": "mensal",
+          "soma_consistente": true,
+          "discrepancia_centavos": 0.0,
+          "cronograma_resumo": "3x de 15.000,00 mensais, primeira em 15/09/2026"
+        },
+        "vigencia": {
+          "data_inicio_iso": "2026-09-01",
+          "data_fim_calculada_iso": "2027-03-01",
+          "vigencia_meses": 6,
+          "dias_corridos_totais": 183,
+          "aviso_previo_dias": 30,
+          "vigencia_formatada": "de 01/09/2026 a 01/03/2027"
+        },
+        "penalidades": {
+          "percentual_multa_rescisoria": 20.0,
+          "base_calculo": "valor remanescente do contrato",
+          "gatilho_aplicacao": "rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado"
+        },
+        "fornecedor_homologado": {
+          "cnpj": "98.765.432/0001-10",
+          "razao_social": "Alfa Consultoria em IA S.A.",
+          "situacao_cadastral": "ATIVA",
+          "score_compliance": 88.5,
+          "limite_alcada_brl": 150000.0,
+          "categoria_risco": "MEDIO",
+          "restricoes_juridicas": "Histórico de renegociação de multa rescisória em aditivo prévio (2025). Homologada com ressalva contratual."
+        },
+        "secoes_analisadas": [
+          "CLÁUSULA PRIMEIRA - DO OBJETO",
+          "CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO",
+          "CLÁUSULA TERCEIRA - DA VIGÊNCIA",
+          "CLÁUSULA QUARTA - DA RESCISÃO E MULTA"
+        ]
+      },
+      "error": null
+    }
+  },
+  "get_status_404": {
+    "endpoint": "GET /status/task-inexistente-12345",
+    "status_code": 404,
+    "response_body": {
+      "detail": "Tarefa com task_id 'task-inexistente-12345' não encontrada."
+    }
+  }
+}

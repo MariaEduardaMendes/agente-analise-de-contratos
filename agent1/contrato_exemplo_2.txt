@@ -1,0 +1,32 @@
+INSTRUMENTO PARTICULAR DE CONTRATO DE LOCAÇÃO DE INFRAESTRUTURA DE NUVEM COMPUTACIONAL
+
+Pelo presente instrumento particular, de um lado:
+
+CONTRATANTE: TechSolutions Ltda., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 12.345.678/0001-90, com sede na Av. Paulista, nº 1000, São Paulo/SP;
+
+e, de outro lado:
+
+CONTRATADA: CloudCorp Soluções Digitais Ltda., pessoa jurídica de direito privado, inscrita no CNPJ/MF sob o nº 23.456.789/0001-01, com sede no Setor Comercial Norte, Quadra 2, Brasília/DF;
+
+Têm entre si justo e avençado o que segue:
+
+CLÁUSULA PRIMEIRA - DO OBJETO
+O presente contrato tem como objeto a locação de clusters de servidores dedicados em nuvem com aceleradores gráficos de GPU e storage distribuído de alta disponibilidade para processamento de inteligência artificial.
+
+CLÁUSULA SEGUNDA - DO PREÇO E CONDIÇÕES DE PAGAMENTO
+Pela prestação contínua da infraestrutura computacional, a CONTRATANTE pagará à CONTRATADA o montante global de R$ 180.000,00 (cento e oitenta mil reais), subdividido em 12 (doze) parcelas mensais, iguais e consecutivas de R$ 15.000,00 (quinze mil reais), com início dos vencimentos em 10/02/2026.
+
+CLÁUSULA TERCEIRA - DO PRAZO DE VIGÊNCIA
+A vigência do presente contrato terá início em 01/02/2026 e perdurará pelo período de 12 (doze) meses, encerrando-se em 01/02/2027.
+
+CLÁUSULA QUARTA - DA RESCISÃO ANTECIPADA E PENALIDADES
+Qualquer das partes poderá rescindir unilateralmente este ajuste mediante comunicação por escrito e aviso prévio formal com antecedência mínima de 60 (sessenta) dias. Em caso de denúncia desmotivada, incidirá multa penal rescisória compensatória de 10% (dez por cento) incidente sobre as parcelas contratuais vincendas até o termo final.
+
+Brasília, 01 de fevereiro de 2026.
+
+_______________________________________
+TechSolutions Ltda. (CONTRATANTE)
+
+_______________________________________
+CloudCorp Soluções Digitais Ltda. (CONTRATADA)
+

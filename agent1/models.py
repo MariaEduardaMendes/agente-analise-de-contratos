@@ -67,6 +67,17 @@ class ClausulaPenal(BaseModel):
     gatilho_aplicacao: str = Field(..., description="Condição de aplicação (ex: rescisao_sem_justa_causa)")
 
 
+class FornecedorHomologadoInfo(BaseModel):
+    """Dados cadastrais de negócio recuperados da fonte estruturada corporativa (cadastro_fornecedores)."""
+    cnpj: str = Field(..., description="CNPJ cadastrado")
+    razao_social: str = Field(..., description="Razão social oficial homologada")
+    situacao_cadastral: str = Field("ATIVA", description="Situação cadastral (ATIVA, SUSPENSA, INAPTA)")
+    score_compliance: float = Field(..., description="Score histórico de compliance corporativo (0 a 100)")
+    limite_alcada_brl: float = Field(..., description="Limite financeiro de alçada aprovado para o fornecedor")
+    categoria_risco: str = Field(..., description="Classificação corporativa de risco (BAIXO, MEDIO, ALTO)")
+    restricoes_juridicas: Optional[str] = Field(None, description="Histórico ou restrições registradas no CEIS/CNJ")
+
+
 class DadosContratoExtraido(BaseModel):
     """
     Schema mestre de saída do Agente 1 (Extrator Enriquecido).
@@ -82,6 +93,12 @@ class DadosContratoExtraido(BaseModel):
     financeiro: CronogramaFinanceiro = Field(..., description="Dados financeiros validados matematicamente")
     vigencia: PeriodoVigencia = Field(..., description="Prazos de vigência normalizados no padrão ISO")
     penalidades: ClausulaPenal = Field(..., description="Cláusula penal e multa rescisória extraídas")
+    
+    # Fonte estruturada corporativa (Cadastro de Fornecedores)
+    fornecedor_homologado: Optional[FornecedorHomologadoInfo] = Field(
+        default=None,
+        description="Informações cadastrais estruturadas de negócio obtidas do banco corporativo"
+    )
     
     # Rastreabilidade de extração
     secoes_analisadas: List[str] = Field(
