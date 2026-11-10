@@ -26,3 +26,4 @@ O Agente 1 possui como missão primordial a **fidelidade estrita ao texto da min
 
 ### C. Princípio do Menor Privilégio (*Least Privilege Security*)
 Apenas o subagente `validador-cadastral-fornecedor` necessita de acesso à ferramenta de consulta ao banco de dados relacional `cadastro_fornecedores`. O pipeline principal de normalização matemática de datas e parcelas não requer nem deve possuir permissão para ler tabelas cadastrais confidenciais, minimizando a superfície de risco.
+

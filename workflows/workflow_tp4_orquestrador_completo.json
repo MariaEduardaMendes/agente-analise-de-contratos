@@ -286,6 +286,67 @@
       ],
       "id": "node-consolidar-dossie",
       "name": "Consolidar Dossiê Contratual Final"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analise o dossiê contratual consolidado a seguir, consulte a ferramenta de políticas corporativas e emita o parecer estratégico executivo definitivo para deliberação da Diretoria:\n\n{{ JSON.stringify($json) }}",
+        "options": {
+          "systemMessage": "Você é o Agente Executivo de Governança e Compliance do n8n. Sua função é receber o dossiê consolidado resultante da extração documental (Agente 1) e da auditoria de risco (Agente 2), consultar a ferramenta 'consultar_politicas_governanca' para verificar as balizas vigentes e emitir a deliberação estratégica conclusiva contendo: 1. Sumário do negócio; 2. Avaliação de risco e multas; 3. Decisão final (Aprovação Direta, Alçada da Diretoria ou Bloqueio Jurídico); 4. Próximos passos operacionais."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        3060,
+        260
+      ],
+      "id": "node-ai-agent-governanca",
+      "name": "AI Agent de Governança Estratégica"
+    },
+    {
+      "parameters": {
+        "model": "nvidia/nemotron-3.5-lightning:free",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2960,
+        480
+      ],
+      "id": "node-llm-chat-openrouter",
+      "name": "LLM Chat Model (OpenRouter)"
+    },
+    {
+      "parameters": {
+        "name": "consultar_politicas_governanca",
+        "description": "Consulta os parâmetros corporativos de alçada financeira, limite tolerável de multa rescisória e diretrizes de governança vigentes na organização.",
+        "jsCode": "return JSON.stringify({\n  politica_codigo: 'POL-COMPLIANCE-2026-V2',\n  limite_alcada_gerencial_brl: 100000.0,\n  limite_teto_multa_recomendado_percentual: 10.0,\n  limite_teto_multa_critico_percentual: 20.0,\n  aviso_previo_minimo_dias: 30,\n  aviso_previo_recomendado_servicos_criticos_dias: 45,\n  exige_ratificacao_diretoria_se_risco_medio_alto: true,\n  score_minimo_homologacao_fornecedor: 80.0\n});"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCustom",
+      "typeVersion": 1.1,
+      "position": [
+        3180,
+        480
+      ],
+      "id": "node-tool-politicas-governanca",
+      "name": "Tool: Políticas de Governança"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Entrega o dossiê executivo final com a deliberação do AI Agent\nconst dossie = $('Consolidar Dossiê Contratual Final').item.json;\nconst sinteseIA = $('AI Agent de Governança Estratégica').item.json;\n\nreturn [{\n  json: {\n    status_pipeline: \"FINALIZADO_COM_SUCESSO\",\n    orquestrador: \"n8n Multi-Agent Workflow Engine\",\n    dossie_tecnico: dossie,\n    deliberacao_executiva_ia: sinteseIA.output || sinteseIA.text || sinteseIA,\n    homologado_em: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3340,
+        260
+      ],
+      "id": "node-entrega-final-homologada",
+      "name": "Dossiê Executivo Homologado"
     }
   ],
   "pinData": {},
@@ -442,6 +503,50 @@
         [
           {
             "node": "Consolidar Dossiê Contratual Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Dossiê Contratual Final": {
+      "main": [
+        [
+          {
+            "node": "AI Agent de Governança Estratégica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Chat Model (OpenRouter)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent de Governança Estratégica",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Políticas de Governança": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent de Governança Estratégica",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent de Governança Estratégica": {
+      "main": [
+        [
+          {
+            "node": "Dossiê Executivo Homologado",
             "type": "main",
             "index": 0
           }

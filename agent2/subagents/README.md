@@ -26,3 +26,4 @@ Em fluxos de renegociação contratual e aditivos bilaterais, frequentemente ape
 
 ### C. Saída Tipada Modular (`ItemAuditoria`)
 O subagente devolve um único objeto tipado e validado (`ItemAuditoria`), permitindo que o Agente 2 agregue as conclusões de múltiplos subagentes especialistas antes de compor o relatório executivo final (`RelatorioConformidade`).
+

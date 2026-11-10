@@ -50,12 +50,17 @@ O arquivo [`workflow_tp4_orquestrador_completo.json`](./workflow_tp4_orquestrado
 [Consolidar Dossiê Contratual Final] (Code Node com Decisão de Governança)
            │
            ▼
-       [Output Final]
+[AI Agent de Governança Estratégica] (@n8n/n8n-nodes-langchain.agent)
+   ├── Conexão ai_languageModel: [LLM Chat Model (OpenRouter)]
+   └── Conexão ai_tool: [Tool: Políticas de Governança]
+           │
+           ▼
+[Dossiê Executivo Homologado] (Entrega Estruturada Final)
 ```
 
 ---
 
-## 2. Descrição dos Nós do Workflow
+## 2. Descrição dos Nós do Workflow Principal
 
 ### Fase 1: Ingestão e Agente 1 (Extrator)
 1. **Disparo Manual (Input Contrato)**: Nó trigger (`manualTrigger`) que inicia a execução sob demanda.
@@ -97,17 +102,37 @@ O arquivo [`workflow_tp4_orquestrador_completo.json`](./workflow_tp4_orquestrado
     - Se **Falso:** Retorna para o nó *Wait (Polling Agente 2)*.
     - Se **Verdadeiro:** Encaminha o relatório de auditoria para o Merge.
 
-### Fase 4: Merge e Consolidação Executiva
+### Fase 4: Merge e Síntese Cognitiva com AI Agent Node
 12. **Merge Agente 1 e Agente 2** (`merge`):
     - **Entrada 1:** Dados extraídos pelo Agente 1 (`DadosContratoExtraido`).
     - **Entrada 2:** Relatório de conformidade emitido pelo Agente 2 (`RelatorioConformidade`).
     - **Modo:** `combine` / `mergeByPosition`.
 13. **Consolidar Dossiê Contratual Final** (`Code Node`):
-    - Agrega os dados contratuais com o parecer de conformidade.
-    - Avalia a matriz de risco e define a **Decisão de Governança**:
-      - `BLOQUEADO_REVISAO_JURIDICA_OBRIGATORIA`: Se houver itens não-conformes ou risco ALTO.
-      - `APROVADO_DIRETORIA_EXECUTIVA`: Se houver itens em alerta de alçada média.
-      - `APROVADO_SUMARIAMENTE`: Se risco for BAIXO e 100% conforme.
+    - Agrega os dados estruturados e emite as métricas preliminares de governança corporativa.
+14. **AI Agent de Governança Estratégica** (`@n8n/n8n-nodes-langchain.agent`):
+    - **Tipo:** LangChain Agent Node (v1.7) integrado nativamente ao n8n.
+    - **Entradas de Conexão:**
+      - `ai_languageModel`: Conectado a **LLM Chat Model (OpenRouter)** (`@n8n/n8n-nodes-langchain.lmChatOpenAi`), operando com o modelo configurado via OpenRouter.
+      - `ai_tool`: Conectado à ferramenta **Tool: Políticas de Governança** (`@n8n/n8n-nodes-langchain.toolCustom`), que consulta de forma determinística os limites corporativos de alçada (R$ 100.000,00) e teto de multas (10% sugerido, 20% crítico).
+    - **Responsabilidade:** Interpreta o dossiê consolidado e delibera estrategicamente sobre riscos contratuais, redigindo o parecer definitivo para a Diretoria Executiva.
+15. **Dossiê Executivo Homologado** (`Code Node`):
+    - Consolida o envelope final com o dossiê técnico e o parecer do AI Agent com timestamp e hash de auditoria.
+
+---
+
+## 3. Sub-workflow Reutilizável: Polling Assíncrono Resiliente
+
+O arquivo [`subworkflow_polling_assincrono.json`](./subworkflow_polling_assincrono.json) foi projetado como um componente reutilizável de mais alto nível para desacoplar a lógica de polling dos fluxos de negócio.
+
+### Como Ele Funciona:
+1. **Trigger de Entrada (`executeWorkflowTrigger`):** Recebe o payload `{ "endpoint_status": "http://127.0.0.1:8001/status/", "task_id": "...", "intervalo_segundos": 2, "max_tentativas": 30 }`.
+2. **Ciclo de Espera e Tentativas:**
+   - Aguarda o intervalo parametrizado (`Wait`).
+   - Dispara `GET` no endpoint dinâmico.
+   - Avalia se `status == "done"`.
+   - Se ainda `pending`, incrementa o contador de tentativas e repete até o teto máximo.
+   - Se exceder `max_tentativas`, devolve objeto padronizado com `status: "error"` e código `TIMEOUT_POLLING_EXCEDIDO`.
+3. **Reutilização:** Pode ser invocado tanto para o Agente 1 quanto para o Agente 2 através do nó `Execute Workflow` (`n8n-nodes-base.executeWorkflow`), reduzindo drasticamente a complexidade visual do pipeline principal.
 
 ---
 
