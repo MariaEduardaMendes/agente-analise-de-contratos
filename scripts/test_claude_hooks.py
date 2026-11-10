@@ -113,3 +113,4 @@ def executar_verificacao_completa_hooks():
 
 if __name__ == "__main__":
     executar_verificacao_completa_hooks()
+

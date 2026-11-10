@@ -81,3 +81,4 @@ def validar_pre_tool():
 
 if __name__ == "__main__":
     validar_pre_tool()
+
