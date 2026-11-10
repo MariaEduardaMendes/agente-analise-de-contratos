@@ -142,3 +142,4 @@ A execução ponta a ponta do ciclo assíncrono completo foi validada com os mod
 - **Score de Conformidade:** 88.5 / 100.0
 - **Nível de Risco Geral:** `ALTO` (devido a multa rescisória contratual de 20% ser superior ao teto de 10-15%)
 - **Decisão Final do Orquestrador:** `BLOQUEADO_REVISAO_JURIDICA_OBRIGATORIA`
+

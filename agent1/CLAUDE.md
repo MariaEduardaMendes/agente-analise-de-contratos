@@ -169,3 +169,32 @@ Consulta o progresso e o resultado da extração.
   ```
 - **Acessar Documentação Interativa:**
   Swagger UI em `http://localhost:8001/docs` e Redoc em `http://localhost:8001/redoc`.
+
+---
+
+## 7. Governança Formal do Claude Code: Permissões e Hooks (`.claude/settings.json`)
+
+A especificação formal do Claude Code dentro do diretório `agent1/` é regida pelo arquivo `.claude/settings.json` e pelos scripts automatizados em `.claude/hooks/`.
+
+### 7.1. Decisões de Permissão (Permissions Engine)
+- **`allow` (Execução Autônoma):**
+  - Leitura de arquivos (`FileRead(*)`), inspeção de versionamento (`git status`, `git diff`) e execução de testes internos (`python test_api.py`, `python agente_extracao.py`, `python demo_memoria_rag.py`).
+  - *Justificativa:* Viabiliza diagnóstico e validação autônoma rápida sem atrito operacional desnecessário.
+- **`deny` (Bloqueio Irrevogável):**
+  - Tentativas de escrita ou edição no diretório do Agente 2 (`FileWrite(../agent2/*)`, `FileEdit(../agent2/*)`).
+  - Tentativas de alteração em arquivos de credenciais e segredos (`FileWrite(.env*)`, `FileDelete(.env*)`).
+  - Comandos destrutivos de terminal (`rm -rf *`, `git push --force*`, `DROP TABLE`).
+  - *Justificativa:* Proteção estrita do isolamento entre microsserviços e salvaguarda contra perda de dados ou vazamento de credenciais.
+- **`ask` (Exigência de Confirmação Humana):**
+  - Alterações no schema central de saída (`models.py`), persistência vetorial/relacional (`memoria_rag.py`), instalação de novos pacotes (`pip install`) e push para repositório remoto.
+  - *Justificativa:* Evita breaking changes em contratos de integração consumidos pelo n8n.
+
+### 7.2. Hooks Automatizados e Verificáveis
+1. **Hook `PreToolUse` (`.claude/hooks/pre_tool_use.py`):**
+   - Intercepta chamadas de ferramentas de escrita (`FileWrite`, `FileEdit`) e comandos de shell (`Bash`).
+   - Bloqueia em tempo real qualquer tentativa de cruzar a fronteira para o `agent2/` ou editar o arquivo `.env`, retornando código de saída `1` e mensagem explicativa.
+   - Registra cada tentativa (aprovada ou rejeitada) no arquivo estruturado `.claude/hooks/logs/hook_audit.log`.
+2. **Hook `PostToolUse` (`.claude/hooks/post_tool_use.py`):**
+   - Disparado imediatamente após a execução bem-sucedida de ferramentas de escrita.
+   - Executa automaticamente a compilação sintática de arquivos Python modificados (`py_compile.compile`) e valida a integridade estrutural de arquivos JSON.
+   - Garante que nenhum arquivo corrompido ou com erro de sintaxe permaneça despercebido no microsserviço.

@@ -145,3 +145,31 @@ Consulta o progresso e o parecer tipado da auditoria.
   ```
 - **Acessar Documentação Interativa:**
   Swagger UI em `http://localhost:8002/docs` e Redoc em `http://localhost:8002/redoc`.
+
+---
+
+## 7. Governança Formal do Claude Code: Permissões e Hooks (`.claude/settings.json`)
+
+A especificação formal do Claude Code dentro do diretório `agent2/` é regida pelo arquivo `.claude/settings.json` e pelos scripts automatizados em `.claude/hooks/`.
+
+### 7.1. Decisões de Permissão (Permissions Engine)
+- **`allow` (Execução Autônoma):**
+  - Leitura de arquivos (`FileRead(*)`), comandos de inspeção (`git status`, `git diff`) e execução dos testes e motor de auditoria (`python test_api.py`, `python agente_auditoria.py`).
+  - *Justificativa:* Permite depuração contínua e verificação de regras de compliance sem interrupções manuais.
+- **`deny` (Bloqueio Irrevogável):**
+  - Tentativas de escrita ou modificação no diretório do Agente 1 (`FileWrite(../agent1/*)`, `FileEdit(../agent1/*)`).
+  - Modificação ou deleção em arquivos de segredos (`FileWrite(.env*)`, `FileDelete(.env*)`).
+  - Comandos de terminal de alto risco (`rm -rf *`, `git push --force*`, `DROP TABLE`).
+  - *Justificativa:* Garante a soberania arquitetural do microsserviço de conformidade e impede acoplamento ou contaminação com o pipeline de extração.
+- **`ask` (Exigência de Confirmação Humana):**
+  - Edição das ferramentas de compliance (`tools.py`), alteração dos schemas de parecer (`models.py`), instalação de dependências (`pip install`) e publicação remota (`git push`).
+  - *Justificativa:* Políticas e parâmetros regulatórios (ex: tetos de multa de 10% e alçadas de R$ 100.000,00) representam governança corporativa e exigem aprovação explícita para alteração.
+
+### 7.2. Hooks Automatizados e Verificáveis
+1. **Hook `PreToolUse` (`.claude/hooks/pre_tool_use.py`):**
+   - Intercepta tentativas de modificação de arquivos e comandos de terminal.
+   - Bloqueia imediatamente qualquer ação direcionada ao `agent1/` ou a arquivos sensíveis (`.env`), gerando registro de auditoria em `.claude/hooks/logs/hook_audit.log`.
+2. **Hook `PostToolUse` (`.claude/hooks/post_tool_use.py`):**
+   - Disparado imediatamente após a execução de ferramentas de escrita.
+   - Executa validação sintática automática em Python (`py_compile`) e checagem estrutural de arquivos JSON.
+   - Garante a integridade imediata dos schemas Pydantic e da lógica de cálculo de risco.

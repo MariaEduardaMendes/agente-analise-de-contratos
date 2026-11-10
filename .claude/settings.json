@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/claude-settings.json",
+  "description": "Especificação formal de permissões e governança global do Claude Code para o projeto",
+  "permissions": {
+    "allow": [
+      "FileRead(*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "FileWrite(.env*)",
+      "FileEdit(.env*)",
+      "FileDelete(.env*)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(*DROP TABLE*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(pip install*)"
+    ]
+  }
+}

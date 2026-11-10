@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/claude-settings.json",
+  "description": "Especificação formal de permissões e governança para o Agente 2 (Avaliador de Conformidade e Risco)",
+  "permissions": {
+    "allow": [
+      "FileRead(*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(python test_api.py*)",
+      "Bash(python agente_auditoria.py*)"
+    ],
+    "deny": [
+      "FileWrite(../agent1/*)",
+      "FileEdit(../agent1/*)",
+      "Bash(*agent1*)",
+      "FileWrite(.env*)",
+      "FileEdit(.env*)",
+      "FileDelete(.env*)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(*DROP TABLE*)"
+    ],
+    "ask": [
+      "FileWrite(tools.py)",
+      "FileEdit(tools.py)",
+      "FileWrite(models.py)",
+      "FileEdit(models.py)",
+      "Bash(pip install*)",
+      "Bash(git push*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "FileWrite|FileEdit|Bash",
+        "command": "python .claude/hooks/pre_tool_use.py"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "FileWrite|FileEdit",
+        "command": "python .claude/hooks/post_tool_use.py"
+      }
+    ]
+  }
+}
