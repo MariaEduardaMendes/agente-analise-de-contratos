@@ -25,13 +25,24 @@ O **Agente 2** é um microsserviço especializado em **Auditoria de Governança,
 
 ```text
 agent2/
-├── CLAUDE.md              # Este arquivo: diretrizes e contexto exclusivo do Agente 2
+├── CLAUDE.md              # Este arquivo: fonte de verdade e especificações do Agente 2
+├── AGENTS.md              # Espelho canônico de especificações do Agente 2
 ├── main.py                # Serviço REST FastAPI com BackgroundTasks (/run e /status)
-├── agente_auditoria.py     # Motor de avaliação de regras e geração do parecer
+├── agente_auditoria.py     # Agente de auditoria com OpenAI Agents SDK e Runner.run
+├── subagente_penalidades.py # Subagente com isolamento de contexto para auditoria de cláusulas penais
 ├── tools.py               # Ferramentas determinísticas Python de conformidade e alçada
 ├── models.py              # Schemas e validações estruturais tipadas com Pydantic v2
 ├── test_api.py            # Suíte de testes automatizados dos endpoints REST
-└── requirements.txt       # Dependências Python específicas do microsserviço
+├── requirements.txt       # Dependências Python específicas do microsserviço
+├── .claude/               # Governança formal: settings.json e hooks
+│   ├── settings.json      # Permissões allow, deny e ask
+│   └── hooks/             # Scripts de PreToolUse e PostToolUse
+├── skills/                # Skills reutilizáveis do agente
+│   └── auditoria-alcada-e-multa/
+│       └── SKILL.md       # Regras de governança de alçadas, multas e mitigações
+└── subagents/             # Especificação formal de subagentes isolados
+    ├── README.md          # Justificativa do isolamento de contexto
+    └── especialista_clausulas_penais.md # Definição YAML do subagente de penalidades
 ```
 
 ---
@@ -173,3 +184,42 @@ A especificação formal do Claude Code dentro do diretório `agent2/` é regida
    - Disparado imediatamente após a execução de ferramentas de escrita.
    - Executa validação sintática automática em Python (`py_compile`) e checagem estrutural de arquivos JSON.
    - Garante a integridade imediata dos schemas Pydantic e da lógica de cálculo de risco.
+
+---
+
+## 8. Evolução do Agente no TP4: Novas Capacidades e Decisões Técnicas
+
+Neste ciclo (TP4), o Agente 2 consolidou as seguintes decisões técnicas fundamentais:
+
+1. **Transformação Completa em Agent com OpenAI Agents SDK:**
+   - O Agente 2 agora é instanciado como `Agent(name="AgenteAuditoriaRisco", tools=[auditar_parametros_contratuais], output_type=AgentOutputSchema(RelatorioConformidade, strict_json_schema=False))`.
+   - Executa a auditoria via inferência real de LLM conectada ao OpenRouter (`Runner.run_sync(..., max_turns=3)`).
+2. **Auditoria de Conformidade como `@function_tool`:**
+   - A lógica analítica de governança foi encapsulada na ferramenta determinística `@function_tool auditar_parametros_contratuais`, acionada dinamicamente pelo modelo durante o raciocínio de auditoria.
+3. **Skill Reutilizável de Alçadas e Penalidades:**
+   - Criada a skill `auditoria-alcada-e-multa` ([`skills/auditoria-alcada-e-multa/SKILL.md`](./skills/auditoria-alcada-e-multa/SKILL.md)), que padroniza os critérios regulatórios de teto de multa (10%), alçada executiva (R$ 100.000,00) e ações de mitigação.
+4. **Subagente Especialista em Penalidades Rescisórias:**
+   - Implementado o subagente isolado `auditor-clausulas-penais` ([`subagents/especialista_clausulas_penais.md`](./subagents/especialista_clausulas_penais.md) e [`subagente_penalidades.py`](./subagente_penalidades.py)), isolando a dogmática jurídica de multas rescisórias para evitar viés de compensação por outros termos comerciais.
+5. **Orquestração Assíncrona via n8n:**
+   - O Agente 2 consome estritamente o payload validado pelo Agente 1 e despachado pelo n8n via `POST /run` (202 Accepted) e `GET /status/{task_id}`, compondo o dossiê executivo final.
+
+---
+
+## 9. Mapeamento de Requisitos do Projeto vs. Funcionalidades Implementadas
+
+A tabela abaixo estabelece a matriz de rastreabilidade entre os requisitos de projeto e a arquitetura concreta do Agente 2:
+
+| Requisito do Projeto | Componente / Arquivo no Agente 2 | Descrição da Implementação | Status |
+| :--- | :--- | :--- | :---: |
+| **Ingestão de Dados Estruturados** | `main.py` (`POST /run`) | Endpoint REST que recebe payload tipado via n8n sem processar texto bruto. | Concluído |
+| **Agente de Conformidade Real** | `agente_auditoria.py` | Instância real de `Agent` com OpenAI Agents SDK e execução via `Runner.run`. | Concluído |
+| **Regras de Negócio como Tool** | `tools.py` (`auditar_parametros_contratuais`) | Ferramenta Python tipada decorada com `@function_tool` para auditoria determinística. | Concluído |
+| **Auditoria de Alçada Financeira** | `tools.py` | Confronto automático do valor global contra o teto gerencial de R$ 100.000,00. | Concluído |
+| **Auditoria de Teto de Multa** | `tools.py` | Avaliação do percentual de penalidade rescisória contra a diretriz de 10% e Código Civil. | Concluído |
+| **Verificação de Regularidade do Fornecedor**| `tools.py` | Auditoria do score de compliance e situação cadastral recuperados da fonte estruturada. | Concluído |
+| **Parecer Executivo Tipado** | `models.py` (`RelatorioConformidade`) | Schema Pydantic v2 contendo score, matriz de risco, itens auditados e parecer em Markdown. | Concluído |
+| **Subagente Especializado** | `subagente_penalidades.py`, `subagents/` | Subagente com contexto isolado para auditoria especializada de cláusulas penais. | Concluído |
+| **Skill Reutilizável** | `skills/auditoria-alcada-e-multa/` | Especificação formal YAML de governança corporativa e mitigações recomendadas. | Concluído |
+| **Governança Claude Code** | `.claude/settings.json`, `.claude/hooks/` | Permissões estritas (`allow`, `deny`, `ask`) e hooks `PreToolUse` (fronteira) e `PostToolUse` (sintaxe). | Concluído |
+| **Orquestração n8n** | `workflows/workflow_tp4_orquestrador_completo.json` | Pipeline assíncrono completo com polling, roteamento condicional e merge final. | Concluído |
+

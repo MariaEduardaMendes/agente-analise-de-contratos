@@ -25,15 +25,27 @@ O **Agente 1** é um microsserviço especializado em **Processamento e Extraçã
 
 ```text
 agent1/
-├── CLAUDE.md                      # Este arquivo: diretrizes e contexto do Agente 1
+├── CLAUDE.md                      # Este arquivo: fonte de verdade e especificações do Agente 1
+├── AGENTS.md                      # Espelho canônico de especificações do Agente 1
 ├── main.py                        # Serviço REST FastAPI com BackgroundTasks (/run e /status)
-├── agente_extracao.py             # Pipeline central de extração e orquestração de tools
+├── agente_extracao.py             # Agente de extração com OpenAI Agents SDK e Runner.run
+├── subagente_cadastral.py         # Subagente com isolamento de contexto para homologação de fornecedores
 ├── tools.py                       # Ferramentas determinísticas Python (@function_tool)
 ├── models.py                      # Schemas de dados e validações estruturais Pydantic v2
-├── memoria_rag.py                 # Persistência de sessão e busca vetorial RAG
-├── contrato_exemplo.txt           # Minuta de contrato para testes e homologação
+├── memoria_rag.py                 # Persistência relacional (fornecedores) e vetorial (rag_documentos)
+├── contrato_exemplo.txt           # Minuta de contrato 1 para testes
+├── contrato_exemplo_2.txt         # Minuta de contrato 2 para validação de extração dinâmica
 ├── test_api.py                    # Suíte de testes automatizados dos endpoints REST
-└── requirements.txt               # Dependências Python específicas do microsserviço
+├── requirements.txt               # Dependências Python específicas do microsserviço
+├── .claude/                       # Governança formal: settings.json e hooks
+│   ├── settings.json              # Permissões allow, deny e ask
+│   └── hooks/                     # Scripts de PreToolUse e PostToolUse
+├── skills/                        # Skills reutilizáveis do agente
+│   └── validacao-financeira-contratual/
+│       └── SKILL.md               # Diretrizes de cálculo financeiro e consistência matemática
+└── subagents/                     # Especificação formal de subagentes isolados
+    ├── README.md                  # Justificativa do isolamento de contexto
+    └── validador_cadastral.md     # Definição YAML do subagente validador cadastral
 ```
 
 ---
@@ -198,3 +210,44 @@ A especificação formal do Claude Code dentro do diretório `agent1/` é regida
    - Disparado imediatamente após a execução bem-sucedida de ferramentas de escrita.
    - Executa automaticamente a compilação sintática de arquivos Python modificados (`py_compile.compile`) e valida a integridade estrutural de arquivos JSON.
    - Garante que nenhum arquivo corrompido ou com erro de sintaxe permaneça despercebido no microsserviço.
+
+---
+
+## 8. Evolução do Agente no TP4: Novas Capacidades e Decisões Técnicas
+
+Neste ciclo (TP4), o Agente 1 consolidou as seguintes decisões técnicas fundamentais:
+
+1. **Substituição de Extração Mockada por Agent Real:**
+   - O Agente 1 opera com uma instância real da classe `Agent` do **OpenAI Agents SDK**, integrada ao modelo de inferência via OpenRouter (`nvidia/nemotron-3.5-lightning:free` / compatíveis OpenAI API).
+   - Saída tipada com `AgentOutputSchema(DadosContratoExtraido, strict_json_schema=False)`.
+   - Limite estrito de conversação configurado com `max_turns=3` para respostas ágeis e sem travamento na esteira do n8n.
+2. **Integração com Fonte de Dados Estruturada de Fornecedores:**
+   - Adicionado módulo de conexão e tabela SQLite `cadastro_fornecedores` contendo situação cadastral, score de compliance, limite de alçada e apontamentos jurídicos.
+   - Exposta a ferramenta `@function_tool consultar_cadastro_fornecedor(cnpj_cpf: str)` para enriquecimento autônomo do modelo extraído.
+3. **Skill Reutilizável de Validação Financeira:**
+   - Criada a skill `validacao-financeira-contratual` ([`skills/validacao-financeira-contratual/SKILL.md`](./skills/validacao-financeira-contratual/SKILL.md)), que encapsula as regras de verificação matemática de parcelamento e discrepâncias centesimais.
+4. **Subagente Cadastral com Isolamento de Contexto:**
+   - Implementado o subagente `validador-cadastral-fornecedor` ([`subagents/validador_cadastral.md`](./subagents/validador_cadastral.md) e [`subagente_cadastral.py`](./subagente_cadastral.py)), isolando a diligência de antecedentes empresariais do processamento do texto integral da minuta.
+5. **Orquestração Assíncrona Integrada ao n8n:**
+   - O Agente 1 não conhece nem chama o Agente 2. Ele atua como produtor assíncrono consumido pelo orquestrador n8n através do padrão `POST /run` (202 Accepted) e polling `GET /status/{task_id}`.
+
+---
+
+## 9. Mapeamento de Requisitos do Projeto vs. Funcionalidades Implementadas
+
+A tabela abaixo estabelece a matriz de rastreabilidade entre os requisitos de projeto e a arquitetura concreta do Agente 1:
+
+| Requisito do Projeto | Componente / Arquivo no Agente 1 | Descrição da Implementação | Status |
+| :--- | :--- | :--- | :---: |
+| **Ingestão Documental Flexível** | `main.py` (`POST /run`) | Endpoint REST que recebe texto bruto de contratos via payload JSON. | Concluído |
+| **Extração Tipada e Dinâmica** | `agente_extracao.py`, `models.py` | Extração via `Agent` com Pydantic v2 (`DadosContratoExtraido`), variando conforme a minuta analisada. | Concluído |
+| **Normalização Temporal** | `tools.py` (`normalizar_prazos_e_datas`) | Conversão de datas para ISO-8601, cálculo de vigência em meses e dias corridos. | Concluído |
+| **Validação Financeira Estrita** | `tools.py` (`extrair_e_validar_tabela_financeira`) | Auditoria matemática de parcelas vs. valor total com cálculo de discrepância centesimal. | Concluído |
+| **Fonte Estruturada de Negócio** | `memoria_rag.py` (`cadastro_fornecedores`) | Tabela relacional SQLite com CNPJs, scores de compliance e limites de alçada homologados. | Concluído |
+| **Memória de Sessão e RAG** | `memoria_rag.py`, `demo_memoria_rag.py` | Persistência multi-turno de histórico em banco e busca semântica em precedentes (`rag_documentos`). | Concluído |
+| **Raciocínio Encadeado** | `pipeline_raciocinio.py` | Execução encadeada *Least-to-Most* e *Chain-of-Thought* para síntese jurídica. | Concluído |
+| **Subagente Especializado** | `subagente_cadastral.py`, `subagents/` | Subagente com contexto isolado para diligência cadastral e emissão de `FornecedorHomologadoInfo`. | Concluído |
+| **Skill Reutilizável** | `skills/validacao-financeira-contratual/` | Especificação formal YAML de procedimentos para auditoria de cronogramas econômicos. | Concluído |
+| **Governança Claude Code** | `.claude/settings.json`, `.claude/hooks/` | Permissões estritas (`allow`, `deny`, `ask`) e hooks `PreToolUse` (fronteira) e `PostToolUse` (sintaxe). | Concluído |
+| **Orquestração n8n** | `workflows/workflow_tp4_orquestrador_completo.json` | Ciclo assíncrono de submissão, polling e merge em pipeline desacoplado no n8n. | Concluído |
+
