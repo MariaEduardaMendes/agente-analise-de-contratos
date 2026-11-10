@@ -89,7 +89,7 @@ def avaliar_conformidade_contrato(dados_contrato: Dict[str, Any]) -> RelatorioCo
     )
     
     try:
-        resultado = Runner.run_sync(agente, prompt_usuario)
+        resultado = Runner.run_sync(agente, prompt_usuario, max_turns=3)
         relatorio: RelatorioConformidade = resultado.final_output
         if relatorio.score_conformidade <= 0.0 and relatorio.total_regras_auditadas > 0:
             relatorio.score_conformidade = round(

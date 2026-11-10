@@ -1,0 +1,471 @@
+{
+  "name": "TP4 - Orquestrador n8n Assincrono com Polling e Roteamento",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "id": "node-trigger-manual",
+      "name": "Disparo Manual (Input Contrato)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define o contrato de entrada e parâmetros do pipeline\nreturn [{\n  json: {\n    contrato_id: \"CTR-2026-N8N-001\",\n    solicitante: \"Auditoria e Governança Corporativa\",\n    texto_contrato: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\\n\\nCONTRATANTE: TechSolutions Ltda., inscrita no CNPJ sob o nº 12.345.678/0001-90, com sede na Av. Paulista, 1000, São Paulo/SP.\\n\\nCONTRATADA: Alfa Consultoria em IA S.A., inscrita no CNPJ sob o nº 98.765.432/0001-10, com sede no Rio de Janeiro/RJ.\\n\\nCLÁUSULA PRIMEIRA - DO OBJETO\\nO presente instrumento tem por objeto a prestação de serviços técnicos especializados de desenvolvimento, integração e suporte de agentes inteligentes autônomos para análise contratual.\\n\\nCLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO\\nPela prestação dos serviços, a CONTRATANTE pagará à CONTRATADA o valor global de R$ 120.000,00 (cento e vinte mil reais), dividido em 12 (doze) parcelas mensais e sucessivas de R$ 10.000,00 (dez mil reais).\\n\\nCLÁUSULA TERCEIRA - DA VIGÊNCIA\\nO prazo de vigência deste contrato é de 12 (doze) meses, iniciando-se em 15 de janeiro de 2026 e encerrando-se em 15 de janeiro de 2027. O contrato poderá ser rescindido antecipadamente mediante aviso prévio por escrito de 30 (trinta) dias.\\n\\nCLÁUSULA QUARTA - DA RESCISÃO E MULTA\\nEm caso de rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado, a parte que der causa incorrerá em multa compensatória de 20% (vinte por cento) sobre o saldo remanescente do contrato.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "id": "node-preparar-dados-entrada",
+      "name": "Preparar Minuta Contratual"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8001/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"texto_contrato\": {{ JSON.stringify($json.texto_contrato) }}\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "node-agente1-post-run",
+      "name": "Agente 1: Submeter POST /run"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        300
+      ],
+      "id": "node-agente1-wait",
+      "name": "Wait (Polling Agente 1)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:8001/status/{{ $('Agente 1: Submeter POST /run').item.json.task_id }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        300
+      ],
+      "id": "node-agente1-get-status",
+      "name": "Agente 1: Consultar GET /status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-agente1-done",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "done",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1140,
+        300
+      ],
+      "id": "node-agente1-if-done",
+      "name": "Agente 1 Concluído?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-roteamento-valido",
+              "leftValue": "={{ $json.data.financeiro.valor_total_brl }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1380,
+        220
+      ],
+      "id": "node-roteador-decisao",
+      "name": "Roteador: Dados Válidos para Auditoria?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extração incompleta ou inválida: gera log de exceção sem acionar Agente 2\nreturn [{\n  json: {\n    status_pipeline: \"BLOQUEADO_EXTRACAO_INVALIDA\",\n    motivo: \"Contrato não possui valor financeiro calculável ou cláusulas mínimas extraídas.\",\n    dados_parciais: $json\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        420
+      ],
+      "id": "node-excecao-extracao",
+      "name": "Tratamento de Exceção Contratual"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8002/run",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"dados_contrato\": {{ JSON.stringify($json.data) }}\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        180
+      ],
+      "id": "node-agente2-post-run",
+      "name": "Agente 2: Submeter POST /run"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1860,
+        180
+      ],
+      "id": "node-agente2-wait",
+      "name": "Wait (Polling Agente 2)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://127.0.0.1:8002/status/{{ $('Agente 2: Submeter POST /run').item.json.task_id }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        180
+      ],
+      "id": "node-agente2-get-status",
+      "name": "Agente 2: Consultar GET /status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-agente2-done",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "done",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2300,
+        180
+      ],
+      "id": "node-agente2-if-done",
+      "name": "Agente 2 Concluído?"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2560,
+        260
+      ],
+      "id": "node-merge-agentes",
+      "name": "Merge Agente 1 e Agente 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolida o Dossiê Final de Análise Contratual a partir dos outputs dos Agentes 1 e 2\nconst resultadoAgente1 = $('Agente 1: Consultar GET /status').item.json;\nconst resultadoAgente2 = $('Agente 2: Consultar GET /status').item.json;\n\nconst extracao = resultadoAgente1.data || {};\nconst auditoria = resultadoAgente2.data || {};\n\n// Determina a recomendação executiva de governança\nlet decisaoGovernança = \"APROVADO_DIRETORIA\";\nif (auditoria.nivel_risco_geral === \"ALTO\" || (auditoria.itens_nao_conformes && auditoria.itens_nao_conformes > 0)) {\n  decisaoGovernança = \"BLOQUEADO_REVISAO_JURIDICA_OBRIGATORIA\";\n} else if (auditoria.nivel_risco_geral === \"BAIXO\") {\n  decisaoGovernança = \"APROVADO_SUMARIAMENTE\";\n}\n\nreturn [{\n  json: {\n    metadata_pipeline: {\n      orquestrador: \"n8n Workflow Engine v1.x/v2.x\",\n      ciclo: \"Assíncrono Completo com Polling e Roteamento de Risco\",\n      timestamp_conclusao: new Date().toISOString(),\n      agente_extracao: {\n        task_id: resultadoAgente1.task_id,\n        status: resultadoAgente1.status,\n        tempo_execucao_s: resultadoAgente1.completed_at ? (resultadoAgente1.completed_at - resultadoAgente1.created_at).toFixed(2) : null\n      },\n      agente_auditoria: {\n        task_id: resultadoAgente2.task_id,\n        status: resultadoAgente2.status,\n        tempo_execucao_s: resultadoAgente2.completed_at ? (resultadoAgente2.completed_at - resultadoAgente2.created_at).toFixed(2) : null\n      }\n    },\n    contrato: {\n      titulo: extracao.titulo,\n      partes: {\n        contratante: extracao.contratante,\n        contratada: extracao.contratada\n      },\n      objeto: extracao.objeto,\n      financeiro: extracao.financeiro,\n      vigencia: extracao.vigencia,\n      penalidades: extracao.penalidades,\n      fornecedor_homologado: extracao.fornecedor_homologado\n    },\n    auditoria_conformidade: {\n      score_conformidade: auditoria.score_conformidade,\n      nivel_risco_geral: auditoria.nivel_risco_geral,\n      itens_auditados: auditoria.itens_auditados,\n      total_regras_auditadas: auditoria.total_regras_auditadas,\n      itens_conformes: auditoria.itens_conformes,\n      itens_alerta: auditoria.itens_alerta,\n      itens_nao_conformes: auditoria.itens_nao_conformes,\n      recomendacoes_mitigacao: auditoria.recomendacoes_mitigacao,\n      parecer_executivo_markdown: auditoria.parecer_executivo_markdown\n    },\n    decisao_governanca: decisaoGovernança\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        260
+      ],
+      "id": "node-consolidar-dossie",
+      "name": "Consolidar Dossiê Contratual Final"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Disparo Manual (Input Contrato)": {
+      "main": [
+        [
+          {
+            "node": "Preparar Minuta Contratual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Minuta Contratual": {
+      "main": [
+        [
+          {
+            "node": "Agente 1: Submeter POST /run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 1: Submeter POST /run": {
+      "main": [
+        [
+          {
+            "node": "Wait (Polling Agente 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Polling Agente 1)": {
+      "main": [
+        [
+          {
+            "node": "Agente 1: Consultar GET /status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 1: Consultar GET /status": {
+      "main": [
+        [
+          {
+            "node": "Agente 1 Concluído?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 1 Concluído?": {
+      "main": [
+        [
+          {
+            "node": "Roteador: Dados Válidos para Auditoria?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait (Polling Agente 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador: Dados Válidos para Auditoria?": {
+      "main": [
+        [
+          {
+            "node": "Agente 2: Submeter POST /run",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Agente 1 e Agente 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tratamento de Exceção Contratual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 2: Submeter POST /run": {
+      "main": [
+        [
+          {
+            "node": "Wait (Polling Agente 2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Polling Agente 2)": {
+      "main": [
+        [
+          {
+            "node": "Agente 2: Consultar GET /status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 2: Consultar GET /status": {
+      "main": [
+        [
+          {
+            "node": "Agente 2 Concluído?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 2 Concluído?": {
+      "main": [
+        [
+          {
+            "node": "Merge Agente 1 e Agente 2",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Wait (Polling Agente 2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Agente 1 e Agente 2": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Dossiê Contratual Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c4d1e2f3-0004-4000-8000-000000000001",
+  "meta": {
+    "instanceId": "pb-agentes-ia-tp4-orquestrador"
+  },
+  "tags": [
+    {
+      "name": "TP4"
+    },
+    {
+      "name": "Orquestracao"
+    },
+    {
+      "name": "Multi-Agentes"
+    }
+  ]
+}

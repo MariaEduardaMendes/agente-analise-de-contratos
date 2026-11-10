@@ -218,7 +218,8 @@ def extrair_contrato_completo(texto_contrato: str) -> DadosContratoExtraido:
         agente = criar_agente_extrator()
         resultado_run = Runner.run_sync(
             agente,
-            f"Extraia com precisão os dados da seguinte minuta contratual:\n\n{texto_contrato}"
+            f"Extraia com precisão os dados da seguinte minuta contratual:\n\n{texto_contrato}",
+            max_turns=3
         )
         contrato: DadosContratoExtraido = resultado_run.final_output
     except Exception as exc:
