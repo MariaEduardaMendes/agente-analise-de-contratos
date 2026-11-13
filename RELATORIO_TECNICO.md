@@ -102,9 +102,9 @@ agente-analise-de-contratos/
 │   ├── demo_memoria_rag.py         # Validação de SQLiteSession e RAG com chamadas reais
 │   ├── test_api.py                 # Testes automatizados dos endpoints REST (:8001)
 │   ├── requirements.txt            # Dependências específicas do Agente 1
-│   ├── .claude/                    # Governança formal: settings.json e hooks Pre/PostToolUse
-│   ├── skills/                     # Skills reutilizáveis (validacao-financeira-contratual)
-│   └── subagents/                  # Subagente com isolamento de contexto (validador_cadastral)
+│   ├── .claude/                    # Governança formal: settings.json, hooks, skills e agents
+│   ├── skills/                     # Espelho de skills (validacao-financeira-contratual)
+│   └── subagents/                  # Documentação e YAML do subagente (validador_cadastral)
 │
 ├── agent2/                         # SEGUNDO AGENTE (Avaliador de Conformidade e Risco)
 │   ├── CLAUDE.md                   # Contrato formal e regras exclusivas do Agente 2
@@ -116,9 +116,9 @@ agente-analise-de-contratos/
 │   ├── models.py                   # Schemas Pydantic v2 (RelatorioConformidade)
 │   ├── test_api.py                 # Testes automatizados dos endpoints REST (:8002)
 │   ├── requirements.txt            # Dependências específicas do Agente 2
-│   ├── .claude/                    # Governança formal: settings.json e hooks Pre/PostToolUse
-│   ├── skills/                     # Skills reutilizáveis (auditoria-alcada-e-multa)
-│   └── subagents/                  # Subagente com isolamento de contexto (especialista_clausulas_penais)
+│   ├── .claude/                    # Governança formal: settings.json, hooks, skills e agents
+│   ├── skills/                     # Espelho de skills (auditoria-alcada-e-multa)
+│   └── subagents/                  # Documentação e YAML do subagente (especialista_clausulas_penais)
 │
 ├── workflows/                      # WORKFLOWS DO N8N
 │   ├── workflow_tp4_orquestrador_completo.json # Workflow oficial com ciclo assíncrono e AI Agent Node
@@ -414,38 +414,39 @@ O pipeline foi exportado e está versionado em [`workflows/workflow_tp4_orquestr
            │
      ┌─────┴─────────────────────────┐
      │   LOOP DE POLLING AGENTE 1    │
-     │  [Wait 2s]                    │
+     │  [Wait 2s] -> [GET /status]   │
      │      │                        │
-     │  [Agente 1: GET /status]      │
-     │      │                        │
-     │  [Agente 1 Concluído? (If)] ──┼── (Se pending: repete Wait)
-     └─────┬─────────────────────────┘
+     │  [Concluído?] ─(False)─>[Falhou?] ──(True)──> [Tratamento de Exceção]
+     └─────┬──────────────────(False: pending)───────> (Retorna ao Wait)
            │ (Se status == 'done')
            ▼
 [Roteador: Dados Válidos para Auditoria?] ──(Se inválido)──> [Tratamento de Exceção]
            │ (Se válido: valor > 0 e penalidades)
-           ▼
-[Agente 2: Submeter POST /run] (Porta 8002 -> Retorna 202 Accepted + task_id)
+           ├─────────────────────────────────────────────────┐
+           ▼                                                 ▼
+[Agente 2: Submeter POST /run] (Porta 8002)     [Empacotar Saída Agente 1]
+           │                                                 │
+     ┌─────┴─────────────────────────┐                       │
+     │   LOOP DE POLLING AGENTE 2    │                       │
+     │  [Wait 2s] -> [GET /status]   │                       │
+     │      │                        │                       │
+     │  [Concluído?] ─(False)─>[Falhou?] ──(True)──> [Exceção]
+     └─────┬──────────────────(False: pending)───────────────┘
+           │ (Se status == 'done')                           │
+           ▼                                                 │
+[Empacotar Saída Agente 2]                                   │
+           │                                                 │
+           └──────────────────────┬──────────────────────────┘
+                                  ▼
+[Merge Agente 1 e Agente 2] (Modo Combine / combineByPosition)
            │
-     ┌─────┴─────────────────────────┐
-     │   LOOP DE POLLING AGENTE 2    │
-     │  [Wait 2s]                    │
-     │      │                        │
-     │  [Agente 2: GET /status]      │
-     │      │                        │
-     │  [Agente 2 Concluído? (If)] ──┼── (Se pending: repete Wait)
-     └─────┬─────────────────────────┘
-           │ (Se status == 'done')
            ▼
-[Merge Agente 1 e Agente 2] (Modo Combine / By Position)
-           │
-           ▼
-[Consolidar Dossiê Contratual Final] (Code Node com Métricas Consolidadas)
+[Consolidar Dossiê Contratual Final] (Consome o item mesclado do nó Merge)
            │
            ▼
 [AI Agent de Governança Estratégica] (@n8n/n8n-nodes-langchain.agent)
    ├── Conector ai_languageModel: [LLM Chat Model (OpenRouter)]
-   └── Conector ai_tool: [Tool: Políticas de Governança]
+   └── Conector ai_tool: [Tool: Políticas de Governança] (@n8n/n8n-nodes-langchain.toolCode)
            │
            ▼
 [Dossiê Executivo Homologado] (Parecer Conclusivo para a Diretoria)
@@ -454,13 +455,13 @@ O pipeline foi exportado e está versionado em [`workflows/workflow_tp4_orquestr
 ### 8.1 Fases do Ciclo Assíncrono no n8n
 
 1. **Submissão Inicial Não-Bloqueante:** O nó HTTP dispara `POST /run` para o Agente 1 (Porta 8001), recebendo `202 Accepted` imediato contendo `task_id` e `status: "pending"`.
-2. **Loop de Polling com Espera Ativa:** O nó `Wait` (2s) e o nó `GET /status/{task_id}` operam em ciclo fechado mediado pelo nó `If`, que avalia `status == "done"`. A sondagem repete de forma não-bloqueante até a conclusão.
+2. **Loop de Polling com Espera Ativa e Proteção contra Falha:** O nó `Wait` (2s) e o nó `GET /status/{task_id}` operam em ciclo fechado com os nós `Agente 1 Concluído?` (`status == "done"`) e `Agente 1 Falhou?` (`status == "error"`), evitando loops infinitos caso ocorra erro no processamento.
 3. **Roteamento Condicional de Integridade Contratual:**
-   - O nó **Roteador** avalia as condições de negócio: `valor_total_brl > 0` e cláusulas penais extraídas.
+   - O nó **Roteador** avalia as condições de negócio (`valor_total_brl > 0` e existência de cláusulas penais).
    - **Caminho de Exceção:** Se o contrato for inválido ou a extração falhar, desvia para o nó de tratamento de erro, abortando o pipeline sem onerar custos do Agente 2.
-   - **Caminho Nominal:** Encaminha os dados estruturados para o Agente 2.
-4. **Acionamento e Polling do Agente 2:** Submete `POST /run` (Porta 8002) com o payload `dados_contrato` gerado pelo Agente 1, executando novo ciclo de polling até `status == "done"`.
-5. **Junção de Resultados via Nó Merge:** O nó `Merge` (modo `combine` / `mergeByPosition`) recebe os dados de ambas as fontes e unifica o histórico técnico do contrato.
+   - **Caminho Nominal:** Encaminha os dados estruturados para o Agente 2 e simultaneamente empacota a saída do Agente 1 (`agente1_resultado`) para preservação sem perdas no `Merge`.
+4. **Acionamento e Polling do Agente 2:** Submete `POST /run` (Porta 8002) com o payload `dados_contrato` gerado pelo Agente 1, executando ciclo análogo de polling com detecção imediata de erro até `status == "done"`, seguido de **Empacotar Saída Agente 2** (`agente2_resultado`).
+5. **Junção Sem Colisão via Nó Merge:** O nó `Merge` (`mode: "combine"`, `combineBy: "combineByPosition"`) unifica `{ agente1_resultado, agente2_resultado }` em um único item consumido diretamente pelo nó `Consolidar Dossiê Contratual Final`.
 
 ---
 
@@ -468,10 +469,10 @@ O pipeline foi exportado e está versionado em [`workflows/workflow_tp4_orquestr
 
 O pipeline integrado supera a arquitetura tradicional de chamadas REST ao incorporar nós cognitivos e sub-workflows:
 
-### 9.1 AI Agent Node com LangChain e Custom Tool no n8n
+### 9.1 AI Agent Node com LangChain e Custom Code Tool no n8n
 - **Nó AI Agent (`@n8n/n8n-nodes-langchain.agent`):** Atua como o consultor executivo que analisa o dossiê unificado e delibera estrategicamente sobre o risco do negócio.
-- **Conector `ai_languageModel` (`@n8n/n8n-nodes-langchain.lmChatOpenAi`):** Modelo de linguagem conectado ao OpenRouter (`nvidia/nemotron-3.5-lightning:free` / compatíveis OpenAI API) com `temperature: 0.2`.
-- **Conector `ai_tool` (`@n8n/n8n-nodes-langchain.toolCustom`):** Ferramenta determinística que injeta a política corporativa de riscos vigente:
+- **Conector `ai_languageModel` (`@n8n/n8n-nodes-langchain.lmChatOpenAi`):** Modelo de linguagem conectado ao OpenRouter (`baseURL: "https://openrouter.ai/api/v1"`, modelo `nvidia/nemotron-3.5-lightning:free`) com `temperature: 0.2`.
+- **Conector `ai_tool` (`@n8n/n8n-nodes-langchain.toolCode`):** Ferramenta JavaScript determinística que injeta a política corporativa de riscos vigente:
   - Teto de alçada gerencial: R$ 100.000,00.
   - Teto recomendado de multa rescisória: 10.0% (alerta acima de 10% e abusiva acima de 20%).
   - Exigência mandatória de ratificação pela Diretoria Executiva em contratos de risco médio/alto.
@@ -479,7 +480,7 @@ O pipeline integrado supera a arquitetura tradicional de chamadas REST ao incorp
 ### 9.2 Sub-workflow Reutilizável de Polling Assíncrono ([`workflows/subworkflow_polling_assincrono.json`](workflows/subworkflow_polling_assincrono.json))
 Componente modular e independente projetado para ser invocado isoladamente via nó `Execute Workflow` (`n8n-nodes-base.executeWorkflow`):
 - **Entrada:** `{ "endpoint_status": "http://127.0.0.1:8001/status/", "task_id": "...", "intervalo_segundos": 2, "max_tentativas": 30 }`.
-- **Comportamento:** Gerencia o contador de tentativas, espera ativa, chamadas HTTP sucessivas e desvio seguro em caso de timeout (`TIMEOUT_POLLING_EXCEDIDO`).
+- **Máquina de Estados Resiliente:** Os nós `Incrementar Tentativa` e `Consolidar Estado do Polling` preservam `endpoint_status`, `tentativa_atual` e `max_tentativas` a cada iteração do loop HTTP, encerrando com erro tipado caso o agente retorne `status: "error"` (`ERRO_EXECUCAO_AGENTE`) ou atinja o limite de tentativas (`TIMEOUT_POLLING_EXCEDIDO`).
 - **Benefício:** Elimina duplicação de lógica entre microsserviços, permitindo que qualquer agente adote o mesmo padrão de espera.
 
 ---
@@ -506,17 +507,17 @@ Cada microsserviço possui seus próprios arquivos canônicos [`CLAUDE.md`](agen
 
 ### 11.1 Skills Reutilizáveis com Frontmatter YAML
 
-| Skill | Agente | Arquivo | Responsabilidade |
+| Skill | Agente | Arquivos (`.claude/skills/` e `skills/`) | Responsabilidade |
 | :--- | :--- | :--- | :--- |
-| **`validacao-financeira-contratual`** | Agente 1 | [`agent1/skills/validacao-financeira-contratual/SKILL.md`](agent1/skills/validacao-financeira-contratual/SKILL.md) | Extrai, audita e valida a consistência entre valor global, parcelas e discrepâncias centesimais via `extrair_e_validar_tabela_financeira`. |
-| **`auditoria-alcada-e-multa`** | Agente 2 | [`agent2/skills/auditoria-alcada-e-multa/SKILL.md`](agent2/skills/auditoria-alcada-e-multa/SKILL.md) | Define critérios para teto de multa (10%), alçada gerencial (R$ 100k) e ações de mitigação de risco. |
+| **`validacao-financeira-contratual`** | Agente 1 | [`agent1/.claude/skills/validacao-financeira-contratual/SKILL.md`](agent1/.claude/skills/validacao-financeira-contratual/SKILL.md) e [`agent1/skills/validacao-financeira-contratual/SKILL.md`](agent1/skills/validacao-financeira-contratual/SKILL.md) | Extrai, audita e valida a consistência entre valor global, parcelas e discrepâncias centesimais via `extrair_e_validar_tabela_financeira`. |
+| **`auditoria-alcada-e-multa`** | Agente 2 | [`agent2/.claude/skills/auditoria-alcada-e-multa/SKILL.md`](agent2/.claude/skills/auditoria-alcada-e-multa/SKILL.md) e [`agent2/skills/auditoria-alcada-e-multa/SKILL.md`](agent2/skills/auditoria-alcada-e-multa/SKILL.md) | Define critérios para teto de multa (10%), alçada gerencial (R$ 100k) e ações de mitigação de risco. |
 
 ### 11.2 Subagentes com Isolamento de Contexto
 
-| Subagente | Agente | Especificação | Código | Output Tipado |
+| Subagente | Agente | Especificação (`.claude/agents/` e `subagents/`) | Código | Output Tipado |
 | :--- | :--- | :--- | :--- | :--- |
-| **`validador-cadastral-fornecedor`** | Agente 1 | [`agent1/subagents/validador_cadastral.md`](agent1/subagents/validador_cadastral.md) | [`agent1/subagente_cadastral.py`](agent1/subagente_cadastral.py) | `FornecedorHomologadoInfo` |
-| **`auditor-clausulas-penais`** | Agente 2 | [`agent2/subagents/especialista_clausulas_penais.md`](agent2/subagents/especialista_clausulas_penais.md) | [`agent2/subagente_penalidades.py`](agent2/subagente_penalidades.py) | `ItemAuditoria` |
+| **`validador-cadastral-fornecedor`** | Agente 1 | [`agent1/.claude/agents/validador-cadastral-fornecedor.md`](agent1/.claude/agents/validador-cadastral-fornecedor.md) e [`agent1/subagents/validador_cadastral.md`](agent1/subagents/validador_cadastral.md) | [`agent1/subagente_cadastral.py`](agent1/subagente_cadastral.py) | `FornecedorHomologadoInfo` |
+| **`auditor-clausulas-penais`** | Agente 2 | [`agent2/.claude/agents/auditor-clausulas-penais.md`](agent2/.claude/agents/auditor-clausulas-penais.md) e [`agent2/subagents/especialista_clausulas_penais.md`](agent2/subagents/especialista_clausulas_penais.md) | [`agent2/subagente_penalidades.py`](agent2/subagente_penalidades.py) | `ItemAuditoria` |
 
 ### 11.3 Justificativa Técnica do Isolamento de Contexto
 A separação dos subagentes foi fundamentada em três pilares ([`agent1/subagents/README.md`](agent1/subagents/README.md) e [`agent2/subagents/README.md`](agent2/subagents/README.md)):
@@ -531,20 +532,23 @@ A separação dos subagentes foi fundamentada em três pilares ([`agent1/subagen
 A operação autônoma do Claude Code dentro de cada agente é regida por especificações formais de segurança:
 
 ### 12.1 Matriz de Permissões (`.claude/settings.json`)
-- **`allow`:** Operações seguras de leitura (`FileRead(*)`) e testes locais (`test_api.py`, `agente_extracao.py`, `agente_auditoria.py`).
-- **`deny`:** Bloqueio estrito de violação de fronteira entre microsserviços (o Agente 1 é impedido de tocar no `agent2/` e vice-versa), alteração de segredos (`.env*`) e comandos destrutivos (`rm -rf *`, `git push --force*`, `DROP TABLE`).
-- **`ask`:** Exigência de aprovação humana para alteração de schemas centrais (`models.py`), ferramentas regulatórias (`tools.py`) e instalação de dependências externas (`pip install`).
+Os arquivos `.claude/settings.json` de cada agente seguem integralmente o schema oficial do Claude Code (`https://json.schemastore.org/claude-code-settings.json`, validado sem avisos via `claude doctor`):
+- **`allow`:** Operações seguras de leitura (`Read(*)`, `Glob(*)`, `Grep(*)`) e execução de testes locais (`Bash(python test_api.py*)`, `Bash(python agente_extracao.py*)`, `Bash(python agente_auditoria.py*)`).
+- **`deny`:** Bloqueio estrito de violação de fronteira entre microsserviços (`Edit(../agent2/**)`, `Write(../agent2/**)` no Agente 1; `Edit(../agent1/**)`, `Write(../agent1/**)` no Agente 2), leitura/edição de segredos (`Read(.env*)`, `Edit(.env*)`, `Write(.env*)`) e comandos destrutivos (`Bash(rm -rf *)`, `Bash(del /f /q *)`, `Bash(git push --force*)`, `Bash(*DROP TABLE*)`).
+- **`ask`:** Exigência de aprovação humana para alteração de schemas centrais (`Edit(models.py)`, `Write(models.py)`), camada HTTP (`Edit(main.py)`), ferramentas regulatórias (`Edit(tools.py)`), instalação de dependências (`Bash(pip install*)`) e push remoto (`Bash(git push*)`).
 
 ### 12.2 Hooks Automatizados e Verificáveis
-1. **Hook `PreToolUse` (`.claude/hooks/pre_tool_use.py`):** Intercepta ferramentas de escrita e comandos de terminal. Bloqueia violações de fronteira entre agentes e tentativas de alteração em `.env`, saindo com código `1` e registrando o evento em `hook_audit.log`.
-2. **Hook `PostToolUse` (`.claude/hooks/post_tool_use.py`):** Disparado imediatamente após a escrita. Executa compilação sintática em Python (`py_compile.compile`) e validação estrutural de JSON, garantindo que nenhum código quebrado permaneça no repositório.
+1. **Hook `PreToolUse` (`.claude/hooks/pre_tool_use.py`):** Intercepta ferramentas de escrita (`Edit|Write|MultiEdit`) e comandos de terminal (`Bash`) lendo `tool_input` via `stdin`. Bloqueia violações de fronteira entre agentes, tentativas de acesso a `.env` e comandos destrutivos, retornando o **código oficial de bloqueio `2`** (`sys.exit(2)`) e registrando o evento em `hook_audit.log`.
+2. **Hook `PostToolUse` (`.claude/hooks/post_tool_use.py`):** Disparado imediatamente após a escrita. Executa compilação sintática em Python (`py_compile.compile`) e validação estrutural de JSON (saindo com código `2` se houver corrupção), garantindo que nenhum código quebrado permaneça no repositório.
 
 **Evidência de Execução dos Hooks ([`scripts/test_claude_hooks.py`](scripts/test_claude_hooks.py)):**
-- Teste 1: Operação legítima no Agente 1 $\rightarrow$ **Aprovado (Código 0)**.
-- Teste 2: Tentativa de alterar o Agente 2 $\rightarrow$ **Bloqueado (Código 1 - Violação de Fronteira)**.
-- Teste 3: Tentativa de editar `.env` $\rightarrow$ **Bloqueado (Código 1 - Violação de Segurança)**.
-- Teste 4: Validação sintática Python $\rightarrow$ **Compilado com Sucesso (Código 0)**.
-- Teste 5: Tentativa do Agente 2 alterar o Agente 1 $\rightarrow$ **Bloqueado (Código 1)**.
+- Teste 1: Operação legítima no Agente 1 (`tool_input.file_path`) $\rightarrow$ **Aprovado (Código 0)**.
+- Teste 2: Tentativa de alterar o Agente 2 $\rightarrow$ **Bloqueado (Código 2 - Violação de Fronteira)**.
+- Teste 3: Tentativa de editar `.env` $\rightarrow$ **Bloqueado (Código 2 - Violação de Segurança)**.
+- Teste 4: Comando destrutivo via `Bash` $\rightarrow$ **Bloqueado (Código 2)**.
+- Teste 5: Validação sintática Python (`.py`) e JSON (`.json`) no `PostToolUse` $\rightarrow$ **Validado com Sucesso (Código 0)**.
+- Teste 6: Tentativa do Agente 2 alterar o Agente 1 $\rightarrow$ **Bloqueado (Código 2)**.
+- Teste 7: Validação sintática no `PostToolUse` do Agente 2 $\rightarrow$ **Validado com Sucesso (Código 0)**.
 
 ---
 

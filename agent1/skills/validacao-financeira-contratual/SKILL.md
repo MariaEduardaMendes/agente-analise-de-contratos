@@ -1,6 +1,10 @@
 ---
 name: validacao-financeira-contratual
 description: Extrai, audita e normaliza cláusulas financeiras de minutas contratuais, confrontando valor total, número de parcelas, valor unitário e calculando discrepâncias centesimais.
+allowed-tools:
+  - Read
+  - Grep
+  - Bash(python agente_extracao.py*)
 version: 1.0.0
 author: Agente 1 (Extrator Enriquecido de Contratos)
 tags:
@@ -53,4 +57,3 @@ Esta skill provê as diretrizes e procedimentos determinísticos para leitura, d
   "cronograma_resumo": "12x de R$ 10.000,00 mensais"
 }
 ```
-

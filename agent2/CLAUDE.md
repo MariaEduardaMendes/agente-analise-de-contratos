@@ -34,13 +34,18 @@ agent2/
 ├── models.py              # Schemas e validações estruturais tipadas com Pydantic v2
 ├── test_api.py            # Suíte de testes automatizados dos endpoints REST
 ├── requirements.txt       # Dependências Python específicas do microsserviço
-├── .claude/               # Governança formal: settings.json e hooks
-│   ├── settings.json      # Permissões allow, deny e ask
-│   └── hooks/             # Scripts de PreToolUse e PostToolUse
-├── skills/                # Skills reutilizáveis do agente
+├── .claude/               # Governança formal: settings.json, hooks, skills e agents
+│   ├── settings.json      # Permissões allow, deny e ask (schema oficial Claude Code)
+│   ├── hooks/             # Scripts de PreToolUse e PostToolUse (exit code 2 em bloqueio)
+│   ├── skills/            # Skills descobertas pelo Claude Code (.claude/skills/)
+│   │   └── auditoria-alcada-e-multa/
+│   │       └── SKILL.md
+│   └── agents/            # Subagentes descobertos pelo Claude Code (.claude/agents/)
+│       └── auditor-clausulas-penais.md
+├── skills/                # Espelho estruturado de skills do agente
 │   └── auditoria-alcada-e-multa/
 │       └── SKILL.md       # Regras de governança de alçadas, multas e mitigações
-└── subagents/             # Especificação formal de subagentes isolados
+└── subagents/             # Documentação e especificação de subagentes isolados
     ├── README.md          # Justificativa do isolamento de contexto
     └── especialista_clausulas_penais.md # Definição YAML do subagente de penalidades
 ```
@@ -165,24 +170,24 @@ A especificação formal do Claude Code dentro do diretório `agent2/` é regida
 
 ### 7.1. Decisões de Permissão (Permissions Engine)
 - **`allow` (Execução Autônoma):**
-  - Leitura de arquivos (`FileRead(*)`), comandos de inspeção (`git status`, `git diff`) e execução dos testes e motor de auditoria (`python test_api.py`, `python agente_auditoria.py`).
+  - Leitura e busca de arquivos (`Read(*)`, `Glob(*)`, `Grep(*)`), comandos de inspeção (`Bash(git status*)`, `Bash(git diff*)`) e execução dos testes e motor de auditoria (`Bash(python test_api.py*)`, `Bash(python agente_auditoria.py*)`, `Bash(python subagente_penalidades.py*)`).
   - *Justificativa:* Permite depuração contínua e verificação de regras de compliance sem interrupções manuais.
 - **`deny` (Bloqueio Irrevogável):**
-  - Tentativas de escrita ou modificação no diretório do Agente 1 (`FileWrite(../agent1/*)`, `FileEdit(../agent1/*)`).
-  - Modificação ou deleção em arquivos de segredos (`FileWrite(.env*)`, `FileDelete(.env*)`).
-  - Comandos de terminal de alto risco (`rm -rf *`, `git push --force*`, `DROP TABLE`).
+  - Leitura, modificação ou deleção em arquivos de segredos (`Read(.env*)`, `Edit(.env*)`, `Write(.env*)`).
+  - Tentativas de escrita ou modificação no diretório do Agente 1 (`Edit(../agent1/**)`, `Write(../agent1/**)`, `Edit(**/agent1/**)`, `Write(**/agent1/**)`, `Bash(*agent1*)`).
+  - Comandos de terminal de alto risco (`Bash(rm -rf *)`, `Bash(del /f /q *)`, `Bash(git push --force*)`, `Bash(*DROP TABLE*)`).
   - *Justificativa:* Garante a soberania arquitetural do microsserviço de conformidade e impede acoplamento ou contaminação com o pipeline de extração.
 - **`ask` (Exigência de Confirmação Humana):**
-  - Edição das ferramentas de compliance (`tools.py`), alteração dos schemas de parecer (`models.py`), instalação de dependências (`pip install`) e publicação remota (`git push`).
+  - Edição das ferramentas de compliance (`Edit(tools.py)`, `Write(tools.py)`), alteração dos schemas de parecer (`Edit(models.py)`, `Write(models.py)`), camada HTTP (`Edit(main.py)`, `Write(main.py)`), instalação de dependências (`Bash(pip install*)`) e publicação remota (`Bash(git push*)`).
   - *Justificativa:* Políticas e parâmetros regulatórios (ex: tetos de multa de 10% e alçadas de R$ 100.000,00) representam governança corporativa e exigem aprovação explícita para alteração.
 
 ### 7.2. Hooks Automatizados e Verificáveis
 1. **Hook `PreToolUse` (`.claude/hooks/pre_tool_use.py`):**
-   - Intercepta tentativas de modificação de arquivos e comandos de terminal.
-   - Bloqueia imediatamente qualquer ação direcionada ao `agent1/` ou a arquivos sensíveis (`.env`), gerando registro de auditoria em `.claude/hooks/logs/hook_audit.log`.
+   - Configurado segundo o schema oficial (`hooks: [{type: "command", command: "python .claude/hooks/pre_tool_use.py"}]`), intercepta ferramentas de escrita (`Edit|Write|MultiEdit`) e comandos de terminal (`Bash`) lendo `tool_input` via `stdin`.
+   - Bloqueia imediatamente qualquer ação direcionada ao `agent1/`, a arquivos sensíveis (`.env`) ou comandos destrutivos, retornando **código de saída oficial `2`** (`sys.exit(2)`) com registro de auditoria em `.claude/hooks/logs/hook_audit.log`.
 2. **Hook `PostToolUse` (`.claude/hooks/post_tool_use.py`):**
-   - Disparado imediatamente após a execução de ferramentas de escrita.
-   - Executa validação sintática automática em Python (`py_compile`) e checagem estrutural de arquivos JSON.
+   - Disparado imediatamente após a execução bem-sucedida de ferramentas de escrita (`Edit|Write|MultiEdit`).
+   - Executa validação sintática automática em Python (`py_compile`) e checagem estrutural de arquivos JSON, retornando `sys.exit(2)` em caso de falha.
    - Garante a integridade imediata dos schemas Pydantic e da lógica de cálculo de risco.
 
 ---
@@ -197,9 +202,9 @@ Neste ciclo (TP4), o Agente 2 consolidou as seguintes decisões técnicas fundam
 2. **Auditoria de Conformidade como `@function_tool`:**
    - A lógica analítica de governança foi encapsulada na ferramenta determinística `@function_tool auditar_parametros_contratuais`, acionada dinamicamente pelo modelo durante o raciocínio de auditoria.
 3. **Skill Reutilizável de Alçadas e Penalidades:**
-   - Criada a skill `auditoria-alcada-e-multa` ([`skills/auditoria-alcada-e-multa/SKILL.md`](./skills/auditoria-alcada-e-multa/SKILL.md)), que padroniza os critérios regulatórios de teto de multa (10%), alçada executiva (R$ 100.000,00) e ações de mitigação.
+   - Criada a skill `auditoria-alcada-e-multa` ([`.claude/skills/auditoria-alcada-e-multa/SKILL.md`](./.claude/skills/auditoria-alcada-e-multa/SKILL.md) e espelho em [`skills/auditoria-alcada-e-multa/SKILL.md`](./skills/auditoria-alcada-e-multa/SKILL.md)), que padroniza os critérios regulatórios de teto de multa (10%), alçada executiva (R$ 100.000,00) e ações de mitigação.
 4. **Subagente Especialista em Penalidades Rescisórias:**
-   - Implementado o subagente isolado `auditor-clausulas-penais` ([`subagents/especialista_clausulas_penais.md`](./subagents/especialista_clausulas_penais.md) e [`subagente_penalidades.py`](./subagente_penalidades.py)), isolando a dogmática jurídica de multas rescisórias para evitar viés de compensação por outros termos comerciais.
+   - Implementado o subagente isolado `auditor-clausulas-penais` ([`.claude/agents/auditor-clausulas-penais.md`](./.claude/agents/auditor-clausulas-penais.md), [`subagents/especialista_clausulas_penais.md`](./subagents/especialista_clausulas_penais.md) e [`subagente_penalidades.py`](./subagente_penalidades.py)), isolando a dogmática jurídica de multas rescisórias para evitar viés de compensação por outros termos comerciais.
 5. **Orquestração Assíncrona via n8n:**
    - O Agente 2 consome estritamente o payload validado pelo Agente 1 e despachado pelo n8n via `POST /run` (202 Accepted) e `GET /status/{task_id}`, compondo o dossiê executivo final.
 

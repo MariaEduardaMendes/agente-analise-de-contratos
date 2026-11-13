@@ -4,6 +4,7 @@ role: Especialista em Homologação e Diligência Cadastral de Fornecedores
 model: inherit
 tools:
   - consultar_cadastro_fornecedor
+  - Read
 output_type: FornecedorHomologadoInfo
 description: Subagente isolado para realização de diligência cadastral de pessoas jurídicas e físicas contratadas, consultando o banco corporativo e avaliando situação cadastral, score e limite de alçada.
 ---
@@ -28,4 +29,3 @@ A separação deste componente como subagente fundamenta-se em:
 - **Redução de Sobrecarga de Janela de Contexto (Context Budget):** A minuta contratual completa possui centenas de linhas e termos técnicos de produto/serviço. O validador cadastral necessita apenas do CNPJ e dados de identificação, economizando tokens e evitando poluição de contexto.
 - **Prevenção de Ambiguidade de Papéis (Role Confusion):** Evita que o agente principal confunda a extração descritiva da minuta com o julgamento cadastral histórico da empresa.
 - **Princípio do Menor Privilégio:** Apenas este subagente necessita de acesso à ferramenta de leitura de cadastros corporativos confidenciais, limitando o raio de ação das ferramentas.
-

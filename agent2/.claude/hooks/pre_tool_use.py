@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Hook PreToolUse — Agente 2 (Avaliador de Conformidade e Risco)
-Executado pelo Claude Code antes de qualquer operação de escrita (FileWrite/FileEdit) ou comando de terminal (Bash).
+Executado pelo Claude Code antes de operações de escrita (Write/Edit/MultiEdit) ou terminal (Bash).
 
 Funções:
 1. Validação estrita de fronteiras de microsserviço: bloqueia alterações no Agente 1.
 2. Bloqueio de comandos destrutivos e modificações em arquivos de segredos (.env).
-3. Registro de auditoria em log estruturado.
+3. Retorno oficial de bloqueio do Claude Code (exit code 2) com registro de auditoria em log estruturado.
 """
 
 import sys
@@ -15,61 +15,85 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone
 
-def registrar_log(status: str, motivo: str, dados_tool: dict):
+
+def registrar_log(status: str, motivo: str, dados_tool: dict) -> None:
     """Grava o registro de auditoria do hook em arquivo de log."""
     log_dir = Path(__file__).resolve().parent / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_file = log_dir / "hook_audit.log"
-    
+
     registro = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "hook": "PreToolUse",
         "agente": "Agente 2 (Auditor de Risco)",
         "status": status,
         "motivo": motivo,
-        "dados": dados_tool
+        "dados": dados_tool,
     }
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(registro, ensure_ascii=False) + "\n")
 
-def validar_pre_tool():
+
+def extrair_alvo_operacao(dados: dict) -> str:
+    """Extrai o caminho de arquivo ou comando a partir do payload oficial do Claude Code (tool_input) ou CLI."""
+    tool_input = dados.get("tool_input")
+    if isinstance(tool_input, dict):
+        alvo = (
+            tool_input.get("file_path")
+            or tool_input.get("path")
+            or tool_input.get("command")
+            or tool_input.get("target")
+            or ""
+        )
+        if alvo:
+            return str(alvo)
+    return str(dados.get("target", "") or dados.get("path", "") or dados.get("command", ""))
+
+
+def validar_pre_tool() -> None:
     payload_bruto = sys.stdin.read().strip()
-    dados = {}
     if payload_bruto:
         try:
             dados = json.loads(payload_bruto)
         except Exception:
             dados = {"raw_input": payload_bruto}
     else:
-        tool_name = os.getenv("CLAUDE_TOOL_NAME", sys.argv[1] if len(sys.argv) > 1 else "FileEdit")
+        tool_name = os.getenv("CLAUDE_TOOL_NAME", sys.argv[1] if len(sys.argv) > 1 else "Edit")
         target = os.getenv("CLAUDE_TOOL_TARGET", sys.argv[2] if len(sys.argv) > 2 else "agent2/tools.py")
-        dados = {"tool_name": tool_name, "target": target}
+        dados = {"tool_name": tool_name, "tool_input": {"file_path": target}}
 
     tool_name = dados.get("tool_name", "")
-    target = str(dados.get("target", "") or dados.get("path", "") or dados.get("command", ""))
+    target = extrair_alvo_operacao(dados)
+    target_lower = target.lower().replace("\\", "/")
 
     # 1. Verificação de Fronteira Estrita: Bloqueia tentativa de alterar arquivos do Agente 1
-    if "agent1" in target.lower():
-        msg = f"[BLOQUEIO PRE-TOOL AGENTE 2] Violação de fronteira arquitetural: o Agente 2 não tem permissão para alterar arquivos do Agente 1 ('{target}')."
+    if "agent1" in target_lower:
+        msg = (
+            "[BLOQUEIO PRE-TOOL AGENTE 2] Violação de fronteira arquitetural: "
+            f"o Agente 2 não tem permissão para alterar arquivos do Agente 1 ('{target}')."
+        )
         registrar_log("REJEITADO", msg, dados)
         print(msg, file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
 
     # 2. Verificação de Segurança: Arquivo de Segredos .env
-    if ".env" in target.lower():
-        msg = f"[BLOQUEIO PRE-TOOL AGENTE 2] Violação de segurança: modificação direta em arquivos de ambiente/segredos ('{target}') é proibida."
+    if ".env" in target_lower:
+        msg = (
+            "[BLOQUEIO PRE-TOOL AGENTE 2] Violação de segurança: "
+            f"modificação direta em arquivos de ambiente/segredos ('{target}') é proibida."
+        )
         registrar_log("REJEITADO", msg, dados)
         print(msg, file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
 
     # 3. Verificação de Comandos Destrutivos no Bash
     comandos_proibidos = ["drop table", "rm -rf", "git push --force", "del /f /q"]
     for cmd in comandos_proibidos:
-        if cmd in target.lower():
+        if cmd in target_lower:
             msg = f"[BLOQUEIO PRE-TOOL AGENTE 2] Comando destrutivo proibido: '{cmd}' em '{target}'."
             registrar_log("REJEITADO", msg, dados)
             print(msg, file=sys.stderr)
-            sys.exit(1)
+            sys.exit(2)
 
     # Aprovação
     msg = f"[PRE-TOOL APROVADO AGENTE 2] Operação '{tool_name}' autorizada para '{target}'."
@@ -77,6 +101,6 @@ def validar_pre_tool():
     print(msg)
     sys.exit(0)
 
+
 if __name__ == "__main__":
     validar_pre_tool()
-

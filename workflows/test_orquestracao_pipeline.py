@@ -19,6 +19,89 @@ from datetime import datetime, timezone
 
 root_dir = Path(__file__).resolve().parent.parent
 
+
+def validar_estrutura_workflows_n8n():
+    """Valida a integridade estrutural, nós, conexões e expressões dos JSONs exportados do n8n."""
+    print("\n[VALIDAÇÃO ESTRUTURAL DOS WORKFLOWS n8n]")
+    wf_principal_path = root_dir / "workflows" / "workflow_tp4_orquestrador_completo.json"
+    sub_wf_path = root_dir / "workflows" / "subworkflow_polling_assincrono.json"
+
+    wf = json.loads(wf_principal_path.read_text(encoding="utf-8"))
+    nodes_wf = {n["name"]: n for n in wf["nodes"]}
+    conns_wf = wf["connections"]
+
+    # Verifica nós críticos e integridade das conexões do workflow principal
+    nos_obrigatorios = [
+        "Agente 1: Submeter POST /run",
+        "Agente 1: Consultar GET /status",
+        "Agente 1 Concluído?",
+        "Agente 1 Falhou?",
+        "Roteador: Dados Válidos para Auditoria?",
+        "Empacotar Saída Agente 1",
+        "Agente 2: Submeter POST /run",
+        "Agente 2: Consultar GET /status",
+        "Agente 2 Concluído?",
+        "Agente 2 Falhou?",
+        "Empacotar Saída Agente 2",
+        "Merge Agente 1 e Agente 2",
+        "Consolidar Dossiê Contratual Final",
+        "AI Agent de Governança Estratégica",
+        "LLM Chat Model (OpenRouter)",
+        "Tool: Políticas de Governança",
+    ]
+    for nome in nos_obrigatorios:
+        assert nome in nodes_wf, f"Nó obrigatório ausente no workflow principal: {nome}"
+
+    # Verifica que todas as referências em connections existem em nodes
+    for src, tipos in conns_wf.items():
+        assert src in nodes_wf, f"Origem inexistente em connections: {src}"
+        for outputs in tipos.values():
+            for branch in outputs:
+                for edge in branch:
+                    assert edge["node"] in nodes_wf, f"Destino inexistente em connections: {edge['node']}"
+
+    # Verifica tipos de nós AI Agent + LLM + Tool
+    assert nodes_wf["AI Agent de Governança Estratégica"]["type"] == "@n8n/n8n-nodes-langchain.agent"
+    assert nodes_wf["LLM Chat Model (OpenRouter)"]["type"] == "@n8n/n8n-nodes-langchain.lmChatOpenAi"
+    assert nodes_wf["Tool: Políticas de Governança"]["type"] == "@n8n/n8n-nodes-langchain.toolCode"
+
+    # Verifica que Consolidar consome os dados mesclados do Merge
+    js_consolidar = nodes_wf["Consolidar Dossiê Contratual Final"]["parameters"]["jsCode"]
+    assert "agente1_resultado" in js_consolidar and "agente2_resultado" in js_consolidar, (
+        "Nó Consolidar deve ler os campos mesclados do nó Merge"
+    )
+    print(f" -> [OK] {wf_principal_path.name}: {len(nodes_wf)} nós e todas as conexões/AI nodes íntegros.")
+
+    # Validação do Sub-workflow reutilizável
+    sub = json.loads(sub_wf_path.read_text(encoding="utf-8"))
+    nodes_sub = {n["name"]: n for n in sub["nodes"]}
+    conns_sub = sub["connections"]
+    for nome in [
+        "Trigger de Execução (Sub-workflow)",
+        "Inicializar Contador de Polling",
+        "Incrementar Tentativa",
+        "Aguardar Intervalo (Wait)",
+        "Consultar Status HTTP GET",
+        "Consolidar Estado do Polling",
+        "Tarefa Finalizada (Status Done)?",
+        "Erro ou Tentativas Esgotadas?",
+    ]:
+        assert nome in nodes_sub, f"Nó obrigatório ausente no sub-workflow: {nome}"
+
+    for src, tipos in conns_sub.items():
+        assert src in nodes_sub, f"Origem inexistente no sub-workflow: {src}"
+        for outputs in tipos.values():
+            for branch in outputs:
+                for edge in branch:
+                    assert edge["node"] in nodes_sub, f"Destino inexistente no sub-workflow: {edge['node']}"
+
+    # Garante que não há referência estática quebrada de contador no If do sub-workflow
+    if_conds = json.dumps(nodes_sub["Erro ou Tentativas Esgotadas?"]["parameters"])
+    assert "$json.tentativa_atual" in if_conds and "$json.max_tentativas" in if_conds, (
+        "Sub-workflow deve comparar o estado dinâmico de tentativa_atual vs max_tentativas"
+    )
+    print(f" -> [OK] {sub_wf_path.name}: {len(nodes_sub)} nós e máquina de estados do polling validados.")
+
 def iniciar_servidor(pasta: str, porta: int):
     """Inicia o microserviço FastAPI em processo isolado na porta especificada."""
     python_exe = sys.executable
@@ -260,4 +343,5 @@ def executar_orquestracao_n8n_completa():
             log2.close()
 
 if __name__ == "__main__":
+    validar_estrutura_workflows_n8n()
     executar_orquestracao_n8n_completa()

@@ -1,30 +1,37 @@
 {
-  "$schema": "https://json.schemastore.org/claude-settings.json",
-  "description": "Especificação formal de permissões e governança para o Agente 2 (Avaliador de Conformidade e Risco)",
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "FileRead(*)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)",
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(python test_api.py*)",
-      "Bash(python agente_auditoria.py*)"
+      "Bash(python agente_auditoria.py*)",
+      "Bash(python subagente_penalidades.py*)"
     ],
     "deny": [
-      "FileWrite(../agent1/*)",
-      "FileEdit(../agent1/*)",
+      "Read(.env*)",
+      "Edit(.env*)",
+      "Write(.env*)",
+      "Edit(../agent1/**)",
+      "Write(../agent1/**)",
+      "Edit(**/agent1/**)",
+      "Write(**/agent1/**)",
       "Bash(*agent1*)",
-      "FileWrite(.env*)",
-      "FileEdit(.env*)",
-      "FileDelete(.env*)",
       "Bash(rm -rf *)",
+      "Bash(del /f /q *)",
       "Bash(git push --force*)",
       "Bash(*DROP TABLE*)"
     ],
     "ask": [
-      "FileWrite(tools.py)",
-      "FileEdit(tools.py)",
-      "FileWrite(models.py)",
-      "FileEdit(models.py)",
+      "Edit(tools.py)",
+      "Write(tools.py)",
+      "Edit(models.py)",
+      "Write(models.py)",
+      "Edit(main.py)",
+      "Write(main.py)",
       "Bash(pip install*)",
       "Bash(git push*)"
     ]
@@ -32,16 +39,25 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "FileWrite|FileEdit|Bash",
-        "command": "python .claude/hooks/pre_tool_use.py"
+        "matcher": "Edit|Write|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/pre_tool_use.py"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "FileWrite|FileEdit",
-        "command": "python .claude/hooks/post_tool_use.py"
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/post_tool_use.py"
+          }
+        ]
       }
     ]
   }
 }
-

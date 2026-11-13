@@ -6,41 +6,41 @@
       "texto_contrato": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\n\nPelo presente instrumento particular, d... [truncado]"
     },
     "response_body": {
-      "task_id": "a5d4ecee-ccdd-46d7-932f-2f359bc8d6dc",
+      "task_id": "f36a3742-c377-4a49-b14e-1c04b44d39d6",
       "status": "pending",
       "message": "Processamento de extração iniciado com sucesso em segundo plano."
     }
   },
   "get_status_done": {
-    "endpoint": "GET /status/a5d4ecee-ccdd-46d7-932f-2f359bc8d6dc",
+    "endpoint": "GET /status/f36a3742-c377-4a49-b14e-1c04b44d39d6",
     "status_code": 200,
     "response_body": {
-      "task_id": "a5d4ecee-ccdd-46d7-932f-2f359bc8d6dc",
+      "task_id": "f36a3742-c377-4a49-b14e-1c04b44d39d6",
       "status": "done",
-      "created_at": 1794338927.817361,
-      "completed_at": 1794338939.868608,
+      "created_at": 1794537838.1941533,
+      "completed_at": 1794537852.0179276,
       "data": {
         "titulo": "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL",
         "contratante": {
           "nome": "TechSolutions Ltda.",
           "cnpj_cpf": "12.345.678/0001-90",
-          "papel": "CONTRATANTE"
+          "papel": "contratante"
         },
         "contratada": {
           "nome": "Alfa Consultoria em IA S.A.",
           "cnpj_cpf": "98.765.432/0001-10",
-          "papel": "CONTRATADA"
+          "papel": "contratada"
         },
-        "objeto": "Desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos.",
+        "objeto": "prestação de serviços técnicos especializados para o desenvolvimento, integração e suporte de um sistema de inteligência artificial multi-agentes focado em análise de conformidade e extração de dados de documentos jurídicos",
         "financeiro": {
-          "moeda": "R$",
+          "moeda": "BRL",
           "valor_total_brl": 45000.0,
           "parcelas_quantidade": 3,
           "valor_parcela_brl": 15000.0,
           "periodicidade": "mensal",
           "soma_consistente": true,
           "discrepancia_centavos": 0.0,
-          "cronograma_resumo": "3x de 15.000,00 mensais, primeira em 15/09/2026"
+          "cronograma_resumo": "3 parcelas mensais de R$ 15.000,00, primeira em 15/09/2026"
         },
         "vigencia": {
           "data_inicio_iso": "2026-09-01",
@@ -48,12 +48,12 @@
           "vigencia_meses": 6,
           "dias_corridos_totais": 183,
           "aviso_previo_dias": 30,
-          "vigencia_formatada": "de 01/09/2026 a 01/03/2027"
+          "vigencia_formatada": "01/09/2026 até 01/03/2027"
         },
         "penalidades": {
           "percentual_multa_rescisoria": 20.0,
           "base_calculo": "valor remanescente do contrato",
-          "gatilho_aplicacao": "rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo estipulado"
+          "gatilho_aplicacao": "aplica-se em caso de rescisão imotivada antes do término do prazo"
         },
         "fornecedor_homologado": {
           "cnpj": "98.765.432/0001-10",
@@ -65,10 +65,11 @@
           "restricoes_juridicas": "Histórico de renegociação de multa rescisória em aditivo prévio (2025). Homologada com ressalva contratual."
         },
         "secoes_analisadas": [
-          "CLÁUSULA PRIMEIRA - DO OBJETO",
-          "CLÁUSULA SEGUNDA - DO VALOR E FORMA DE PAGAMENTO",
-          "CLÁUSULA TERCEIRA - DA VIGÊNCIA",
-          "CLÁUSULA QUARTA - DA RESCISÃO E MULTA"
+          "PREAMBULO",
+          "OBJETO",
+          "PRECO_E_CONDICOES",
+          "VIGENCIA",
+          "RESCISAO_E_PENALIDADES"
         ]
       },
       "error": null

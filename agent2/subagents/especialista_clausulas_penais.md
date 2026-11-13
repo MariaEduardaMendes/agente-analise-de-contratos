@@ -4,6 +4,7 @@ role: Especialista Jurídico em Cláusulas Penais e Limitação de Responsabilid
 model: inherit
 tools:
   - auditar_parametros_contratuais
+  - Read
 output_type: ItemAuditoria
 description: Subagente isolado para auditoria aprofundada de multas rescisórias, cláusulas penais compensatórias e limitação de responsabilidade civil contra as balizas da Lei 10.406/2002 (Código Civil) e precedentes corporativos.
 ---
@@ -26,4 +27,3 @@ Este subagente é responsável exclusivo pela análise dogmática e quantitativa
 - **Especialização de Domínio Jurídico:** O cálculo de conformidade da multa exige foco estrito em jurisprudência civil e balizas indenizatórias. Manter esse raciocínio isolado impede que o agente geral atenue o risco da multa com base em outros termos comerciais favoráveis.
 - **Modularidade de Avaliação:** Viabiliza reavaliar aditivos de rescisão de forma pontual e independente sem reprocessar todas as cláusulas do contrato.
 - **Rastreabilidade e Auditabilidade:** Produz um `ItemAuditoria` autocontido com fundamentação legal clara.
-

@@ -37,13 +37,18 @@ agent1/
 ├── contrato_exemplo_2.txt         # Minuta de contrato 2 para validação de extração dinâmica
 ├── test_api.py                    # Suíte de testes automatizados dos endpoints REST
 ├── requirements.txt               # Dependências Python específicas do microsserviço
-├── .claude/                       # Governança formal: settings.json e hooks
-│   ├── settings.json              # Permissões allow, deny e ask
-│   └── hooks/                     # Scripts de PreToolUse e PostToolUse
-├── skills/                        # Skills reutilizáveis do agente
+├── .claude/                       # Governança formal: settings.json, hooks, skills e agents
+│   ├── settings.json              # Permissões allow, deny e ask (schema oficial Claude Code)
+│   ├── hooks/                     # Scripts de PreToolUse e PostToolUse (exit code 2 em bloqueio)
+│   ├── skills/                    # Skills descobertas pelo Claude Code (.claude/skills/)
+│   │   └── validacao-financeira-contratual/
+│   │       └── SKILL.md
+│   └── agents/                    # Subagentes descobertos pelo Claude Code (.claude/agents/)
+│       └── validador-cadastral-fornecedor.md
+├── skills/                        # Espelho estruturado de skills do agente
 │   └── validacao-financeira-contratual/
 │       └── SKILL.md               # Diretrizes de cálculo financeiro e consistência matemática
-└── subagents/                     # Especificação formal de subagentes isolados
+└── subagents/                     # Documentação e especificação de subagentes isolados
     ├── README.md                  # Justificativa do isolamento de contexto
     └── validador_cadastral.md     # Definição YAML do subagente validador cadastral
 ```
@@ -65,7 +70,6 @@ O Agente 1 possui três ferramentas determinísticas decoradas com `@function_to
 3. **`consultar_cadastro_fornecedor`**:
    - *Finalidade:* Consulta a fonte de dados estruturada corporativa em banco relacional (`cadastro_fornecedores`) para recuperar situação cadastral, score de compliance e limite de alçada homologado.
    - *Assinatura:* `(cnpj_cpf: str) -> str (JSON)`
-   - *Assinatura:* `(valor_total: float, parcelas_qtd: int, valor_parcela: float, periodicidade: str = 'mensal') -> str (JSON)`
 
 ---
 
@@ -190,25 +194,25 @@ A especificação formal do Claude Code dentro do diretório `agent1/` é regida
 
 ### 7.1. Decisões de Permissão (Permissions Engine)
 - **`allow` (Execução Autônoma):**
-  - Leitura de arquivos (`FileRead(*)`), inspeção de versionamento (`git status`, `git diff`) e execução de testes internos (`python test_api.py`, `python agente_extracao.py`, `python demo_memoria_rag.py`).
+  - Leitura e busca de arquivos (`Read(*)`, `Glob(*)`, `Grep(*)`), inspeção de versionamento (`Bash(git status*)`, `Bash(git diff*)`) e execução de testes internos (`Bash(python test_api.py*)`, `Bash(python agente_extracao.py*)`, `Bash(python demo_memoria_rag.py*)`, `Bash(python pipeline_raciocinio.py*)`, `Bash(python subagente_cadastral.py*)`).
   - *Justificativa:* Viabiliza diagnóstico e validação autônoma rápida sem atrito operacional desnecessário.
 - **`deny` (Bloqueio Irrevogável):**
-  - Tentativas de escrita ou edição no diretório do Agente 2 (`FileWrite(../agent2/*)`, `FileEdit(../agent2/*)`).
-  - Tentativas de alteração em arquivos de credenciais e segredos (`FileWrite(.env*)`, `FileDelete(.env*)`).
-  - Comandos destrutivos de terminal (`rm -rf *`, `git push --force*`, `DROP TABLE`).
+  - Leitura, escrita ou edição de arquivos de credenciais e segredos (`Read(.env*)`, `Edit(.env*)`, `Write(.env*)`).
+  - Tentativas de escrita ou edição no diretório do Agente 2 (`Edit(../agent2/**)`, `Write(../agent2/**)`, `Edit(**/agent2/**)`, `Write(**/agent2/**)`, `Bash(*agent2*)`).
+  - Comandos destrutivos de terminal (`Bash(rm -rf *)`, `Bash(del /f /q *)`, `Bash(git push --force*)`, `Bash(*DROP TABLE*)`).
   - *Justificativa:* Proteção estrita do isolamento entre microsserviços e salvaguarda contra perda de dados ou vazamento de credenciais.
 - **`ask` (Exigência de Confirmação Humana):**
-  - Alterações no schema central de saída (`models.py`), persistência vetorial/relacional (`memoria_rag.py`), instalação de novos pacotes (`pip install`) e push para repositório remoto.
+  - Alterações no schema central de saída (`Edit(models.py)`, `Write(models.py)`), persistência vetorial/relacional (`Edit(memoria_rag.py)`, `Write(memoria_rag.py)`), camada HTTP (`Edit(main.py)`, `Write(main.py)`), instalação de novos pacotes (`Bash(pip install*)`) e push remoto (`Bash(git push*)`).
   - *Justificativa:* Evita breaking changes em contratos de integração consumidos pelo n8n.
 
 ### 7.2. Hooks Automatizados e Verificáveis
 1. **Hook `PreToolUse` (`.claude/hooks/pre_tool_use.py`):**
-   - Intercepta chamadas de ferramentas de escrita (`FileWrite`, `FileEdit`) e comandos de shell (`Bash`).
-   - Bloqueia em tempo real qualquer tentativa de cruzar a fronteira para o `agent2/` ou editar o arquivo `.env`, retornando código de saída `1` e mensagem explicativa.
+   - Configurado segundo o schema oficial (`hooks: [{type: "command", command: "python .claude/hooks/pre_tool_use.py"}]`), intercepta ferramentas de escrita (`Edit|Write|MultiEdit`) e comandos de shell (`Bash`) lendo `tool_input` via `stdin`.
+   - Bloqueia em tempo real qualquer tentativa de cruzar a fronteira para o `agent2/`, editar arquivos `.env` ou executar comandos destrutivos, retornando **código de saída oficial `2`** (`sys.exit(2)`) com mensagem explicativa em `stderr`.
    - Registra cada tentativa (aprovada ou rejeitada) no arquivo estruturado `.claude/hooks/logs/hook_audit.log`.
 2. **Hook `PostToolUse` (`.claude/hooks/post_tool_use.py`):**
-   - Disparado imediatamente após a execução bem-sucedida de ferramentas de escrita.
-   - Executa automaticamente a compilação sintática de arquivos Python modificados (`py_compile.compile`) e valida a integridade estrutural de arquivos JSON.
+   - Disparado imediatamente após a execução bem-sucedida de ferramentas de escrita (`Edit|Write|MultiEdit`).
+   - Executa automaticamente a compilação sintática de arquivos Python modificados (`py_compile.compile`) e valida a integridade estrutural de arquivos JSON, retornando `sys.exit(2)` caso detecte sintaxe corrompida.
    - Garante que nenhum arquivo corrompido ou com erro de sintaxe permaneça despercebido no microsserviço.
 
 ---
@@ -225,9 +229,9 @@ Neste ciclo (TP4), o Agente 1 consolidou as seguintes decisões técnicas fundam
    - Adicionado módulo de conexão e tabela SQLite `cadastro_fornecedores` contendo situação cadastral, score de compliance, limite de alçada e apontamentos jurídicos.
    - Exposta a ferramenta `@function_tool consultar_cadastro_fornecedor(cnpj_cpf: str)` para enriquecimento autônomo do modelo extraído.
 3. **Skill Reutilizável de Validação Financeira:**
-   - Criada a skill `validacao-financeira-contratual` ([`skills/validacao-financeira-contratual/SKILL.md`](./skills/validacao-financeira-contratual/SKILL.md)), que encapsula as regras de verificação matemática de parcelamento e discrepâncias centesimais.
+   - Criada a skill `validacao-financeira-contratual` ([`.claude/skills/validacao-financeira-contratual/SKILL.md`](./.claude/skills/validacao-financeira-contratual/SKILL.md) e espelho em [`skills/validacao-financeira-contratual/SKILL.md`](./skills/validacao-financeira-contratual/SKILL.md)), que encapsula as regras de verificação matemática de parcelamento e discrepâncias centesimais.
 4. **Subagente Cadastral com Isolamento de Contexto:**
-   - Implementado o subagente `validador-cadastral-fornecedor` ([`subagents/validador_cadastral.md`](./subagents/validador_cadastral.md) e [`subagente_cadastral.py`](./subagente_cadastral.py)), isolando a diligência de antecedentes empresariais do processamento do texto integral da minuta.
+   - Implementado o subagente `validador-cadastral-fornecedor` ([`.claude/agents/validador-cadastral-fornecedor.md`](./.claude/agents/validador-cadastral-fornecedor.md), [`subagents/validador_cadastral.md`](./subagents/validador_cadastral.md) e [`subagente_cadastral.py`](./subagente_cadastral.py)), isolando a diligência de antecedentes empresariais do processamento do texto integral da minuta.
 5. **Orquestração Assíncrona Integrada ao n8n:**
    - O Agente 1 não conhece nem chama o Agente 2. Ele atua como produtor assíncrono consumido pelo orquestrador n8n através do padrão `POST /run` (202 Accepted) e polling `GET /status/{task_id}`.
 

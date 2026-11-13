@@ -7,23 +7,36 @@
       "typeVersion": 1,
       "position": [
         0,
-        200
+        220
       ],
       "id": "node-sub-trigger",
       "name": "Trigger de Execução (Sub-workflow)"
     },
     {
       "parameters": {
-        "jsCode": "// Inicializa os parâmetros de sondagem\nconst entrada = $json;\nreturn [{\n  json: {\n    endpoint_status: entrada.endpoint_status || \"http://127.0.0.1:8001/status/\",\n    task_id: entrada.task_id,\n    intervalo_segundos: entrada.intervalo_segundos || 2,\n    tentativa_atual: 1,\n    max_tentativas: entrada.max_tentativas || 30\n  }\n}];"
+        "jsCode": "// Inicializa os parâmetros de sondagem com contador zerado\nconst entrada = $json;\nif (!entrada.task_id) {\n  throw new Error('Parâmetro obrigatório ausente: task_id');\n}\nreturn [{\n  json: {\n    endpoint_status: entrada.endpoint_status || \"http://127.0.0.1:8001/status/\",\n    task_id: entrada.task_id,\n    intervalo_segundos: Number(entrada.intervalo_segundos || 2),\n    tentativa_atual: 0,\n    max_tentativas: Number(entrada.max_tentativas || 30)\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         220,
-        200
+        220
       ],
       "id": "node-sub-init",
       "name": "Inicializar Contador de Polling"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Incrementa tentativa preservando todo o estado do polling no fluxo\nconst atual = $json;\nreturn [{\n  json: {\n    endpoint_status: atual.endpoint_status,\n    task_id: atual.task_id,\n    intervalo_segundos: atual.intervalo_segundos,\n    tentativa_atual: Number(atual.tentativa_atual || 0) + 1,\n    max_tentativas: atual.max_tentativas\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        220
+      ],
+      "id": "node-sub-incrementar",
+      "name": "Incrementar Tentativa"
     },
     {
       "parameters": {
@@ -33,8 +46,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        440,
-        200
+        660,
+        220
       ],
       "id": "node-sub-wait",
       "name": "Aguardar Intervalo (Wait)"
@@ -50,11 +63,24 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
-        200
+        880,
+        220
       ],
       "id": "node-sub-http-status",
       "name": "Consultar Status HTTP GET"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preserva o estado de controle do polling junto à resposta HTTP da iteração atual\nconst estado = $('Incrementar Tentativa').last().json;\nconst respostaHttp = $json;\nreturn [{\n  json: {\n    endpoint_status: estado.endpoint_status,\n    task_id: respostaHttp.task_id || estado.task_id,\n    intervalo_segundos: estado.intervalo_segundos,\n    tentativa_atual: estado.tentativa_atual,\n    max_tentativas: estado.max_tentativas,\n    status: respostaHttp.status,\n    created_at: respostaHttp.created_at ?? null,\n    completed_at: respostaHttp.completed_at ?? null,\n    data: respostaHttp.data ?? null,\n    error: respostaHttp.error ?? null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        220
+      ],
+      "id": "node-sub-merge-state",
+      "name": "Consolidar Estado do Polling"
     },
     {
       "parameters": {
@@ -84,8 +110,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        880,
-        200
+        1320,
+        220
       ],
       "id": "node-sub-if-done",
       "name": "Tarefa Finalizada (Status Done)?"
@@ -101,63 +127,60 @@
           },
           "conditions": [
             {
+              "id": "cond-status-error",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "error",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
               "id": "cond-tentativas-esgotadas",
-              "leftValue": "={{ $('Inicializar Contador de Polling').item.json.tentativa_atual }}",
-              "rightValue": "={{ $('Inicializar Contador de Polling').item.json.max_tentativas }}",
+              "leftValue": "={{ $json.tentativa_atual }}",
+              "rightValue": "={{ $json.max_tentativas }}",
               "operator": {
                 "type": "number",
                 "operation": "gte"
               }
             }
           ],
-          "combinator": "and"
+          "combinator": "or"
         },
         "options": {}
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1100,
-        340
+        1540,
+        360
       ],
       "id": "node-sub-if-limite",
-      "name": "Tentativas Esgotadas?"
+      "name": "Erro ou Tentativas Esgotadas?"
     },
     {
       "parameters": {
-        "jsCode": "// Incrementa tentativa e prepara próximo ciclo de polling\nconst initData = $('Inicializar Contador de Polling').item.json;\nreturn [{\n  json: {\n    endpoint_status: initData.endpoint_status,\n    task_id: initData.task_id,\n    intervalo_segundos: initData.intervalo_segundos,\n    tentativa_atual: (initData.tentativa_atual || 1) + 1,\n    max_tentativas: initData.max_tentativas\n  }\n}];"
+        "jsCode": "// Erro de execução do agente ou timeout do polling\nconst item = $json;\nconst isAgentError = item.status === 'error';\nreturn [{\n  json: {\n    sucesso: false,\n    task_id: item.task_id,\n    status: \"error\",\n    tentativas_realizadas: item.tentativa_atual,\n    motivo: isAgentError ? \"ERRO_EXECUCAO_AGENTE\" : \"TIMEOUT_POLLING_EXCEDIDO\",\n    mensagem: isAgentError\n      ? `A tarefa ${item.task_id} falhou no agente: ${item.error || 'erro desconhecido'}`\n      : `A tarefa ${item.task_id} não concluiu dentro de ${item.max_tentativas} tentativas.`\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1320,
-        420
-      ],
-      "id": "node-sub-incrementar",
-      "name": "Incrementar Tentativa"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Erro por timeout do polling\nreturn [{\n  json: {\n    status: \"error\",\n    motivo: \"TIMEOUT_POLLING_EXCEDIDO\",\n    mensagem: `A tarefa ${$json.task_id} não concluiu dentro de ${$json.max_tentativas} tentativas.`\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1320,
-        280
+        1780,
+        300
       ],
       "id": "node-sub-timeout-erro",
-      "name": "Retorno de Timeout"
+      "name": "Retorno de Erro ou Timeout"
     },
     {
       "parameters": {
-        "jsCode": "// Retorno padronizado de sucesso do sub-workflow\nconst resultado = $json;\nreturn [{\n  json: {\n    sucesso: true,\n    task_id: resultado.task_id,\n    status: resultado.status,\n    created_at: resultado.created_at,\n    completed_at: resultado.completed_at,\n    data: resultado.data\n  }\n}];"
+        "jsCode": "// Retorno padronizado de sucesso do sub-workflow\nconst resultado = $json;\nreturn [{\n  json: {\n    sucesso: true,\n    task_id: resultado.task_id,\n    status: resultado.status,\n    tentativas_realizadas: resultado.tentativa_atual,\n    created_at: resultado.created_at,\n    completed_at: resultado.completed_at,\n    data: resultado.data\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
-        140
+        1560,
+        120
       ],
       "id": "node-sub-retorno-sucesso",
       "name": "Retorno Formatado com Sucesso"
@@ -177,6 +200,17 @@
       ]
     },
     "Inicializar Contador de Polling": {
+      "main": [
+        [
+          {
+            "node": "Incrementar Tentativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incrementar Tentativa": {
       "main": [
         [
           {
@@ -202,6 +236,17 @@
       "main": [
         [
           {
+            "node": "Consolidar Estado do Polling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Estado do Polling": {
+      "main": [
+        [
+          {
             "node": "Tarefa Finalizada (Status Done)?",
             "type": "main",
             "index": 0
@@ -220,18 +265,18 @@
         ],
         [
           {
-            "node": "Tentativas Esgotadas?",
+            "node": "Erro ou Tentativas Esgotadas?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Tentativas Esgotadas?": {
+    "Erro ou Tentativas Esgotadas?": {
       "main": [
         [
           {
-            "node": "Retorno de Timeout",
+            "node": "Retorno de Erro ou Timeout",
             "type": "main",
             "index": 0
           }
@@ -244,24 +289,13 @@
           }
         ]
       ]
-    },
-    "Incrementar Tentativa": {
-      "main": [
-        [
-          {
-            "node": "Aguardar Intervalo (Wait)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "sub-wf-polling-000000000001",
+  "versionId": "sub-wf-polling-000000000002",
   "meta": {
     "instanceId": "sub-workflow-polling-resiliente"
   },
@@ -277,4 +311,3 @@
     }
   ]
 }
-

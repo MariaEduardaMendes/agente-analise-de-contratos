@@ -130,12 +130,55 @@
           },
           "conditions": [
             {
+              "id": "cond-agente1-error",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "error",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1140,
+        480
+      ],
+      "id": "node-agente1-if-error",
+      "name": "Agente 1 Falhou?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
               "id": "cond-roteamento-valido",
               "leftValue": "={{ $json.data.financeiro.valor_total_brl }}",
               "rightValue": 0,
               "operator": {
                 "type": "number",
                 "operation": "gt"
+              }
+            },
+            {
+              "id": "cond-roteamento-penalidades",
+              "leftValue": "={{ Boolean($json.data.penalidades) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
               }
             }
           ],
@@ -147,23 +190,36 @@
       "typeVersion": 2.2,
       "position": [
         1380,
-        220
+        200
       ],
       "id": "node-roteador-decisao",
       "name": "Roteador: Dados Válidos para Auditoria?"
     },
     {
       "parameters": {
-        "jsCode": "// Extração incompleta ou inválida: gera log de exceção sem acionar Agente 2\nreturn [{\n  json: {\n    status_pipeline: \"BLOQUEADO_EXTRACAO_INVALIDA\",\n    motivo: \"Contrato não possui valor financeiro calculável ou cláusulas mínimas extraídas.\",\n    dados_parciais: $json\n  }\n}];"
+        "jsCode": "// Extração ou execução falhou: gera log de exceção sem onerar o fluxo restante\nreturn [{\n  json: {\n    status_pipeline: \"BLOQUEADO_ERRO_OU_EXTRACAO_INVALIDA\",\n    motivo: $json.error || \"Contrato não possui valor financeiro calculável ou cláusulas penais extraídas.\",\n    dados_parciais: $json\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1620,
-        420
+        520
       ],
       "id": "node-excecao-extracao",
       "name": "Tratamento de Exceção Contratual"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Empacota explicitamente a saída do Agente 1 para fusão limpa no nó Merge\nreturn [{\n  json: {\n    agente1_resultado: $json\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        360
+      ],
+      "id": "node-wrap-agente1",
+      "name": "Empacotar Saída Agente 1"
     },
     {
       "parameters": {
@@ -189,7 +245,7 @@
       "typeVersion": 4.2,
       "position": [
         1620,
-        180
+        140
       ],
       "id": "node-agente2-post-run",
       "name": "Agente 2: Submeter POST /run"
@@ -203,7 +259,7 @@
       "typeVersion": 1.1,
       "position": [
         1860,
-        180
+        140
       ],
       "id": "node-agente2-wait",
       "name": "Wait (Polling Agente 2)"
@@ -220,7 +276,7 @@
       "typeVersion": 4.2,
       "position": [
         2080,
-        180
+        140
       ],
       "id": "node-agente2-get-status",
       "name": "Agente 2: Consultar GET /status"
@@ -254,21 +310,68 @@
       "typeVersion": 2.2,
       "position": [
         2300,
-        180
+        140
       ],
       "id": "node-agente2-if-done",
       "name": "Agente 2 Concluído?"
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-agente2-error",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "error",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2300,
+        340
+      ],
+      "id": "node-agente2-if-error",
+      "name": "Agente 2 Falhou?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Empacota explicitamente a saída do Agente 2 para fusão sem colisão de chaves no nó Merge\nreturn [{\n  json: {\n    agente2_resultado: $json\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        140
+      ],
+      "id": "node-wrap-agente2",
+      "name": "Empacotar Saída Agente 2"
+    },
+    {
+      "parameters": {
         "mode": "combine",
-        "combinationMode": "mergeByPosition",
+        "combineBy": "combineByPosition",
         "options": {}
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        2560,
+        2760,
         260
       ],
       "id": "node-merge-agentes",
@@ -276,12 +379,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Consolida o Dossiê Final de Análise Contratual a partir dos outputs dos Agentes 1 e 2\nconst resultadoAgente1 = $('Agente 1: Consultar GET /status').item.json;\nconst resultadoAgente2 = $('Agente 2: Consultar GET /status').item.json;\n\nconst extracao = resultadoAgente1.data || {};\nconst auditoria = resultadoAgente2.data || {};\n\n// Determina a recomendação executiva de governança\nlet decisaoGovernança = \"APROVADO_DIRETORIA\";\nif (auditoria.nivel_risco_geral === \"ALTO\" || (auditoria.itens_nao_conformes && auditoria.itens_nao_conformes > 0)) {\n  decisaoGovernança = \"BLOQUEADO_REVISAO_JURIDICA_OBRIGATORIA\";\n} else if (auditoria.nivel_risco_geral === \"BAIXO\") {\n  decisaoGovernança = \"APROVADO_SUMARIAMENTE\";\n}\n\nreturn [{\n  json: {\n    metadata_pipeline: {\n      orquestrador: \"n8n Workflow Engine v1.x/v2.x\",\n      ciclo: \"Assíncrono Completo com Polling e Roteamento de Risco\",\n      timestamp_conclusao: new Date().toISOString(),\n      agente_extracao: {\n        task_id: resultadoAgente1.task_id,\n        status: resultadoAgente1.status,\n        tempo_execucao_s: resultadoAgente1.completed_at ? (resultadoAgente1.completed_at - resultadoAgente1.created_at).toFixed(2) : null\n      },\n      agente_auditoria: {\n        task_id: resultadoAgente2.task_id,\n        status: resultadoAgente2.status,\n        tempo_execucao_s: resultadoAgente2.completed_at ? (resultadoAgente2.completed_at - resultadoAgente2.created_at).toFixed(2) : null\n      }\n    },\n    contrato: {\n      titulo: extracao.titulo,\n      partes: {\n        contratante: extracao.contratante,\n        contratada: extracao.contratada\n      },\n      objeto: extracao.objeto,\n      financeiro: extracao.financeiro,\n      vigencia: extracao.vigencia,\n      penalidades: extracao.penalidades,\n      fornecedor_homologado: extracao.fornecedor_homologado\n    },\n    auditoria_conformidade: {\n      score_conformidade: auditoria.score_conformidade,\n      nivel_risco_geral: auditoria.nivel_risco_geral,\n      itens_auditados: auditoria.itens_auditados,\n      total_regras_auditadas: auditoria.total_regras_auditadas,\n      itens_conformes: auditoria.itens_conformes,\n      itens_alerta: auditoria.itens_alerta,\n      itens_nao_conformes: auditoria.itens_nao_conformes,\n      recomendacoes_mitigacao: auditoria.recomendacoes_mitigacao,\n      parecer_executivo_markdown: auditoria.parecer_executivo_markdown\n    },\n    decisao_governanca: decisaoGovernança\n  }\n}];"
+        "jsCode": "// Consolida o Dossiê Final diretamente a partir do item mesclado entregue pelo nó Merge\nconst itemMesclado = $json;\nconst resultadoAgente1 = itemMesclado.agente1_resultado || $('Agente 1: Consultar GET /status').item.json;\nconst resultadoAgente2 = itemMesclado.agente2_resultado || $('Agente 2: Consultar GET /status').item.json;\n\nconst extracao = resultadoAgente1.data || {};\nconst auditoria = resultadoAgente2.data || {};\n\n// Determina a recomendação executiva de governança\nlet decisaoGovernanca = \"APROVADO_DIRETORIA\";\nif (auditoria.nivel_risco_geral === \"ALTO\" || (auditoria.itens_nao_conformes && auditoria.itens_nao_conformes > 0)) {\n  decisaoGovernanca = \"BLOQUEADO_REVISAO_JURIDICA_OBRIGATORIA\";\n} else if (auditoria.nivel_risco_geral === \"BAIXO\") {\n  decisaoGovernanca = \"APROVADO_SUMARIAMENTE\";\n}\n\nreturn [{\n  json: {\n    metadata_pipeline: {\n      orquestrador: \"n8n Workflow Engine v1.x/v2.x\",\n      ciclo: \"Assíncrono Completo com Polling, Roteamento de Risco e Merge\",\n      timestamp_conclusao: new Date().toISOString(),\n      agente_extracao: {\n        task_id: resultadoAgente1.task_id,\n        status: resultadoAgente1.status,\n        tempo_execucao_s: resultadoAgente1.completed_at ? Number((resultadoAgente1.completed_at - resultadoAgente1.created_at).toFixed(2)) : null\n      },\n      agente_auditoria: {\n        task_id: resultadoAgente2.task_id,\n        status: resultadoAgente2.status,\n        tempo_execucao_s: resultadoAgente2.completed_at ? Number((resultadoAgente2.completed_at - resultadoAgente2.created_at).toFixed(2)) : null\n      }\n    },\n    contrato: {\n      titulo: extracao.titulo,\n      partes: {\n        contratante: extracao.contratante,\n        contratada: extracao.contratada\n      },\n      objeto: extracao.objeto,\n      financeiro: extracao.financeiro,\n      vigencia: extracao.vigencia,\n      penalidades: extracao.penalidades,\n      fornecedor_homologado: extracao.fornecedor_homologado\n    },\n    auditoria_conformidade: {\n      score_conformidade: auditoria.score_conformidade,\n      nivel_risco_geral: auditoria.nivel_risco_geral,\n      itens_auditados: auditoria.itens_auditados,\n      total_regras_auditadas: auditoria.total_regras_auditadas,\n      itens_conformes: auditoria.itens_conformes,\n      itens_alerta: auditoria.itens_alerta,\n      itens_nao_conformes: auditoria.itens_nao_conformes,\n      recomendacoes_mitigacao: auditoria.recomendacoes_mitigacao,\n      parecer_executivo_markdown: auditoria.parecer_executivo_markdown\n    },\n    decisao_governanca: decisaoGovernanca\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2800,
+        3000,
         260
       ],
       "id": "node-consolidar-dossie",
@@ -290,7 +393,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Analise o dossiê contratual consolidado a seguir, consulte a ferramenta de políticas corporativas e emita o parecer estratégico executivo definitivo para deliberação da Diretoria:\n\n{{ JSON.stringify($json) }}",
+        "text": "=Analise o dossiê contratual consolidado a seguir, consulte a ferramenta 'consultar_politicas_governanca' e emita o parecer estratégico executivo definitivo para deliberação da Diretoria:\n\n{{ JSON.stringify($json) }}",
         "options": {
           "systemMessage": "Você é o Agente Executivo de Governança e Compliance do n8n. Sua função é receber o dossiê consolidado resultante da extração documental (Agente 1) e da auditoria de risco (Agente 2), consultar a ferramenta 'consultar_politicas_governanca' para verificar as balizas vigentes e emitir a deliberação estratégica conclusiva contendo: 1. Sumário do negócio; 2. Avaliação de risco e multas; 3. Decisão final (Aprovação Direta, Alçada da Diretoria ou Bloqueio Jurídico); 4. Próximos passos operacionais."
         }
@@ -298,7 +401,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        3060,
+        3260,
         260
       ],
       "id": "node-ai-agent-governanca",
@@ -308,13 +411,14 @@
       "parameters": {
         "model": "nvidia/nemotron-3.5-lightning:free",
         "options": {
+          "baseURL": "https://openrouter.ai/api/v1",
           "temperature": 0.2
         }
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        2960,
+        3160,
         480
       ],
       "id": "node-llm-chat-openrouter",
@@ -324,12 +428,13 @@
       "parameters": {
         "name": "consultar_politicas_governanca",
         "description": "Consulta os parâmetros corporativos de alçada financeira, limite tolerável de multa rescisória e diretrizes de governança vigentes na organização.",
+        "language": "javaScript",
         "jsCode": "return JSON.stringify({\n  politica_codigo: 'POL-COMPLIANCE-2026-V2',\n  limite_alcada_gerencial_brl: 100000.0,\n  limite_teto_multa_recomendado_percentual: 10.0,\n  limite_teto_multa_critico_percentual: 20.0,\n  aviso_previo_minimo_dias: 30,\n  aviso_previo_recomendado_servicos_criticos_dias: 45,\n  exige_ratificacao_diretoria_se_risco_medio_alto: true,\n  score_minimo_homologacao_fornecedor: 80.0\n});"
       },
-      "type": "@n8n/n8n-nodes-langchain.toolCustom",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.1,
       "position": [
-        3180,
+        3380,
         480
       ],
       "id": "node-tool-politicas-governanca",
@@ -337,12 +442,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Entrega o dossiê executivo final com a deliberação do AI Agent\nconst dossie = $('Consolidar Dossiê Contratual Final').item.json;\nconst sinteseIA = $('AI Agent de Governança Estratégica').item.json;\n\nreturn [{\n  json: {\n    status_pipeline: \"FINALIZADO_COM_SUCESSO\",\n    orquestrador: \"n8n Multi-Agent Workflow Engine\",\n    dossie_tecnico: dossie,\n    deliberacao_executiva_ia: sinteseIA.output || sinteseIA.text || sinteseIA,\n    homologado_em: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Entrega o dossiê executivo final com a deliberação do AI Agent\nconst dossie = $('Consolidar Dossiê Contratual Final').item.json;\nconst sinteseIA = $json;\n\nreturn [{\n  json: {\n    status_pipeline: \"FINALIZADO_COM_SUCESSO\",\n    orquestrador: \"n8n Multi-Agent Workflow Engine\",\n    dossie_tecnico: dossie,\n    deliberacao_executiva_ia: sinteseIA.output || sinteseIA.text || sinteseIA,\n    homologado_em: new Date().toISOString()\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3340,
+        3540,
         260
       ],
       "id": "node-entrega-final-homologada",
@@ -417,6 +522,24 @@
         ],
         [
           {
+            "node": "Agente 1 Falhou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 1 Falhou?": {
+      "main": [
+        [
+          {
+            "node": "Tratamento de Exceção Contratual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Wait (Polling Agente 1)",
             "type": "main",
             "index": 0
@@ -433,7 +556,7 @@
             "index": 0
           },
           {
-            "node": "Merge Agente 1 e Agente 2",
+            "node": "Empacotar Saída Agente 1",
             "type": "main",
             "index": 0
           }
@@ -441,6 +564,17 @@
         [
           {
             "node": "Tratamento de Exceção Contratual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empacotar Saída Agente 1": {
+      "main": [
+        [
+          {
+            "node": "Merge Agente 1 e Agente 2",
             "type": "main",
             "index": 0
           }
@@ -484,9 +618,27 @@
       "main": [
         [
           {
-            "node": "Merge Agente 1 e Agente 2",
+            "node": "Empacotar Saída Agente 2",
             "type": "main",
-            "index": 1
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente 2 Falhou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente 2 Falhou?": {
+      "main": [
+        [
+          {
+            "node": "Tratamento de Exceção Contratual",
+            "type": "main",
+            "index": 0
           }
         ],
         [
@@ -494,6 +646,17 @@
             "node": "Wait (Polling Agente 2)",
             "type": "main",
             "index": 0
+          }
+        ]
+      ]
+    },
+    "Empacotar Saída Agente 2": {
+      "main": [
+        [
+          {
+            "node": "Merge Agente 1 e Agente 2",
+            "type": "main",
+            "index": 1
           }
         ]
       ]
@@ -558,7 +721,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "c4d1e2f3-0004-4000-8000-000000000001",
+  "versionId": "c4d1e2f3-0004-4000-8000-000000000002",
   "meta": {
     "instanceId": "pb-agentes-ia-tp4-orquestrador"
   },

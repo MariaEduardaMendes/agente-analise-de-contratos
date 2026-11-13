@@ -1,6 +1,10 @@
 ---
 name: auditoria-alcada-e-multa
 description: Realiza a auditoria corporativa de tetos de multas rescisórias, limites de alçada gerencial vs. diretoria executiva e conformidade do cadastro de fornecedores com emissão de parecer de risco tipado.
+allowed-tools:
+  - Read
+  - Grep
+  - Bash(python agente_auditoria.py*)
 version: 1.0.0
 author: Agente 2 (Auditor de Risco e Conformidade)
 tags:
@@ -44,4 +48,3 @@ Para cada item classificado como `ALERTA` ou `NAO_CONFORME`, a skill deve gerar 
 - Sugestão de renegociação percentual do teto rescisório.
 - Encaminhamento do dossiê para deliberação da Diretoria Executiva.
 - Inclusão de cláusulas de SLA e garantias contratuais compensatórias.
-

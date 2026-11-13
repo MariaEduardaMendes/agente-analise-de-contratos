@@ -34,7 +34,7 @@ except Exception:
     pass
 
 from openai import AsyncOpenAI
-from agents import Agent, Runner
+from agents import Agent, Runner, AgentOutputSchema
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 
 from tools import (
@@ -81,7 +81,7 @@ def criar_modelo_llm() -> OpenAIChatCompletionsModel:
     base_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
     model_name = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free")
     
-    client = AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=30.0)
+    client = AsyncOpenAI(api_key=api_key, base_url=base_url, timeout=20.0, max_retries=1)
     return OpenAIChatCompletionsModel(model=model_name, openai_client=client)
 
 def criar_agente_extrator() -> Agent:
@@ -95,7 +95,7 @@ def criar_agente_extrator() -> Agent:
             extrair_e_validar_tabela_financeira,
             consultar_cadastro_fornecedor
         ],
-        output_type=DadosContratoExtraido,
+        output_type=AgentOutputSchema(DadosContratoExtraido, strict_json_schema=False),
         model=model
     )
 
@@ -110,8 +110,8 @@ def _extrair_contingencia_deterministica(texto_contrato: str) -> DadosContratoEx
     titulo = linhas[0] if linhas else "Instrumento Contratual"
     
     # 2. Contratante e Contratada
-    m_contratante = re.search(r"CONTRATANTE:\s*([^,]+?),\s*.*?CNPJ.*?([0-9\.\/\-]+)", texto_contrato, re.I)
-    m_contratada = re.search(r"CONTRATADA:\s*([^,]+?),\s*.*?CNPJ.*?([0-9\.\/\-]+)", texto_contrato, re.I)
+    m_contratante = re.search(r"CONTRATANTE:\s*([^,]+?),\s*.*?CNPJ.*?(\d[\d\.\/\-]+\d)", texto_contrato, re.I)
+    m_contratada = re.search(r"CONTRATADA:\s*([^,]+?),\s*.*?CNPJ.*?(\d[\d\.\/\-]+\d)", texto_contrato, re.I)
     
     nome_contratante = m_contratante.group(1).strip() if m_contratante else "TechSolutions Ltda."
     cnpj_contratante = m_contratante.group(2).strip() if m_contratante else "12.345.678/0001-90"
@@ -141,7 +141,10 @@ def _extrair_contingencia_deterministica(texto_contrato: str) -> DadosContratoEx
     m_meses = re.search(r"(\d+)\s*(?:\([^\)]+\)\s*)?meses", texto_contrato, re.I)
     meses_vigencia = int(m_meses.group(1)) if m_meses else 6
     
-    m_data = re.search(r"(\d{2}[\/\-]\d{2}[\/\-]\d{4})", texto_contrato)
+    m_data = (
+        re.search(r"in[ií]cio[^\d\n]*(\d{2}[\/\-]\d{2}[\/\-]\d{4})", texto_contrato, re.I)
+        or re.search(r"(\d{2}[\/\-]\d{2}[\/\-]\d{4})", texto_contrato)
+    )
     data_inicio = m_data.group(1) if m_data else "01/09/2026"
     
     m_aviso = re.search(r"aviso prévio.*?(\d+)\s*(?:\([^\)]+\)\s*)?dias", texto_contrato, re.I)

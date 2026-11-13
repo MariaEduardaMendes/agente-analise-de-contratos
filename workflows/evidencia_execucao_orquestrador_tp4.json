@@ -2,16 +2,16 @@
   "metadata_pipeline": {
     "orquestrador": "n8n Workflow Engine v1.x/v2.x",
     "ciclo": "Assíncrono Completo com Polling e Roteamento de Risco",
-    "timestamp_conclusao": "2026-11-10T20:18:09.354293+00:00",
+    "timestamp_conclusao": "2026-11-13T02:47:22.830682+00:00",
     "agente_extracao": {
-      "task_id": "be72e145-5a19-4199-a49b-9ed48e2c9098",
+      "task_id": "e11705d1-d54b-430e-9cfd-77eab9cbf1bd",
       "status": "done",
-      "tempo_processamento_s": 14.97
+      "tempo_processamento_s": 12.83
     },
     "agente_auditoria": {
-      "task_id": "dc3ac386-1fc3-4db5-b197-8eaacf7e9f28",
+      "task_id": "a5b3c2e3-d603-4c17-a081-f41ecd00e31b",
       "status": "done",
-      "tempo_processamento_s": 26.78
+      "tempo_processamento_s": 21.23
     }
   },
   "contrato": {
@@ -20,15 +20,15 @@
       "contratante": {
         "nome": "TechSolutions Ltda.",
         "cnpj_cpf": "12.345.678/0001-90",
-        "papel": "CONTRATANTE"
+        "papel": "Contratante"
       },
       "contratada": {
         "nome": "Alfa Consultoria em IA S.A.",
         "cnpj_cpf": "98.765.432/0001-10",
-        "papel": "CONTRATADA"
+        "papel": "Contratada"
       }
     },
-    "objeto": "prestação de serviços técnicos especializados de desenvolvimento, integração e suporte de agentes inteligentes autônomos para análise contratual",
+    "objeto": "Prestação de serviços técnicos especializados de desenvolvimento, integração e suporte de agentes inteligentes autônomos para análise contratual.",
     "financeiro": {
       "moeda": "BRL",
       "valor_total_brl": 120000.0,
@@ -40,8 +40,8 @@
       "cronograma_resumo": "12x de R$10.000,00 mensais"
     },
     "vigencia": {
-      "data_inicio_iso": "2026-01-15T00:00:00-03:00",
-      "data_fim_calculada_iso": "2027-01-15T00:00:00-03:00",
+      "data_inicio_iso": "2026-01-15",
+      "data_fim_calculada_iso": "2027-01-15",
       "vigencia_meses": 12,
       "dias_corridos_totais": 365,
       "aviso_previo_dias": 30,
@@ -49,8 +49,8 @@
     },
     "penalidades": {
       "percentual_multa_rescisoria": 20.0,
-      "base_calculo": "sobre o saldo remanescente do contrato",
-      "gatilho_aplicacao": "rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo"
+      "base_calculo": "saldo remanescente do contrato",
+      "gatilho_aplicacao": "Rescisão imotivada por iniciativa de qualquer das partes antes do término do prazo"
     },
     "fornecedor_homologado": {
       "cnpj": "98.765.432/0001-10",
@@ -64,48 +64,62 @@
   },
   "auditoria_conformidade": {
     "score_conformidade": 88.5,
-    "nivel_risco_geral": "ALTO",
-    "total_regras_auditadas": 5,
-    "itens_conformes": 3,
-    "itens_alerta": 1,
-    "itens_nao_conformes": 1,
+    "nivel_risco_geral": "MEDIO",
+    "total_regras_auditadas": 7,
+    "itens_conformes": 5,
+    "itens_alerta": 2,
+    "itens_nao_conformes": 0,
     "itens_auditados": [
       {
-        "regra": "Validade da vigência",
+        "regra": "Vigência do contrato corresponde ao período informado",
         "status": "CONFORME",
         "nivel_risco": "BAIXO",
-        "descricao_analise": "A vigência de 12 meses está alinhada ao período solicitado; não há pendências.",
-        "fundamentacao": "O contrato cobre exatamente 12 meses, correspondendo ao vigência_meses informado."
+        "descricao_analise": "O contrato possui 12 meses de vigência, iniciando em 15/01/2026 e terminando em 15/01/2027, conforme definido nas vigências calculadas.",
+        "fundamentacao": "Comparação das datas de início e fim com o campo vigencia_meses."
       },
       {
-        "regra": "Aviso prévio",
-        "status": "ALERTA",
-        "nivel_risco": "MEDIO",
-        "descricao_analise": "O aviso prévio de 30 dias está na mínima permissão contratual; recomenda-se revisar para 45 dias.",
-        "fundamentacao": "30 dias pode ser insuficiente para reposição de recursos em caso de rescisão."
+        "regra": "Aviso prévio adequado",
+        "status": "CONFORME",
+        "nivel_risco": "BAIXO",
+        "descricao_analise": "Cláusula de aviso prévio de 30 dias está dentro do padrão aceitável para contratos de prestação de serviços.",
+        "fundamentacao": "Comparação do aviso_previo_dias (30) com as regras internas (≥30 dias)."
       },
       {
         "regra": "Percentual de multa rescisória",
-        "status": "NAO_CONFORME",
-        "nivel_risco": "ALTO",
-        "descricao_analise": "Multa de 20% sobre saldo remanescente é considerada alta frente ao mercado (referência 10-15%).",
-        "fundamentacao": "O contrato prevê multa de 20%; sugere-se negociação para reduzir ou estabelecer teto."
+        "status": "ALERTA",
+        "nivel_risco": "MEDIO",
+        "descricao_analise": "O percentual de 20% sobre o saldo remanescente está ligeiramente acima do limite de referência de 15% para contratos de mesma natureza.",
+        "fundamentacao": "Comparação do percentual_multa (20.0) com o threshold interno."
       },
       {
-        "regra": "Score de compliance do fornecedor",
+        "regra": "Situação cadastral do fornecedor",
         "status": "CONFORME",
         "nivel_risco": "BAIXO",
-        "descricao_analise": "Score 88.5 está acima do limiar de 80; risco baixo.",
-        "fundamentacao": "Fornecedor homologado com score adequado."
+        "descricao_analise": "Fornecedor possui situação cadastral ATIVA e score de compliance 88.5, dentro do aceitável.",
+        "fundamentacao": "Uso do campo situacao_fornecedor e score_compliance_fornecedor."
+      },
+      {
+        "regra": "Limite de alcance do contratado",
+        "status": "CONFORME",
+        "nivel_risco": "BAIXO",
+        "descricao_analise": "O valor total do contrato (R$ 120.000,00) está abaixo do limite de alcance do fornecedor (R$ 150.000,00).",
+        "fundamentacao": "Comparação entre valor_total_brl e limite_alcada_brl."
+      },
+      {
+        "regra": "Histórico de renegociação de multa",
+        "status": "NAO_CONFORME",
+        "nivel_risco": "ALTO",
+        "descricao_analise": "O fornecedor tem histórico de renegociação de multa rescisória em aditivo prévio (2025), configurando risco de futura disputa contratual.",
+        "fundamentacao": "Análise das restricoes_juridicas informadas."
       }
     ],
     "recomendacoes_mitigacao": [
-      "1. Revisar cláusula de aviso prévio para aumentá-lo a 45 dias, garantindo mais segurança operacional.",
-      "2. Negociar redução do percentual de multa rescisória para, no máximo, 15% ou estabelecer um teto máximo em valor absoluto.",
-      "3. Manter monitoramento trimestral do score de compliance do fornecedor, mesmo estando acima do limiar.",
-      "4. Registrar em aditivo qualquer alteração na multa ou aviso prévio para garantir transparência."
+      "Revisar a cláusula de multa rescisória para adequar o percentual a 15% ou incluir uma faixa escalonada, visando reduzir risco médio.",
+      "Considerar a inclusão de uma cláusula de \"good faith\" na renegociação de multas, baseada no histórico de 2025, para prevenir disputas futuras.",
+      "Manter monitoramento trimestral do score de compliance do fornecedor, visto que está próximo do limite de aceitação (88.5).",
+      "Formalizar um aditivo caso seja necessário ajustar o aviso prévio caso as partes desejem alterar a duração do contrato."
     ],
-    "parecer_executivo_markdown": "# Relatório de Conformidade Contratual\n\n**Título do Contrato:** CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\n\n**Data da Auditoria:** 2025-08-14\n\n## 1. Visão Geral\nO contrato destina-se à prestação de serviços técnicos especializados de desenvolvimento, integração e suporte de agentes inteligentes autônomos para análise contratual, com valor total de R$ 120.000,00 (BRL) e vigência de 12 meses (15/01/2026 a 15/01/2027).\n\n## 2. Itens Auditados\n| Regra | Status | Nível de Risco | Comentário |\n|-------|--------|----------------|------------|\n| Validade da vigência | CONFORMRE | BAIXO | Período alinhado ao solicitado. |\n| Aviso prévio | ALERTA | MEDIO | Mínimo permitido; sugere-se aumento. |\n| Percentual de multa rescisória | NÃO CONFORME | ALTO | Multa de 20% considerada alta. |\n| Score de compliance do fornecedor | CONFORMRE | BAIXO | Score 88.5 adequado. |\n\n## 3. Contagem de Regras\n- **Total de regras auditadas:** 5\n- **Itens conformes:** 3\n- **Itens em alerta:** 1\n- **Itens não conformes:** 1\n\n## 4. Recomendações de Mitigação\n1. Revisar cláusula de aviso prévio para aumentá-lo a 45 dias.\n2. Negociar redução do percentual de multa rescisória para, no máximo, 15% ou estabelecer teto máximo em valor absoluto.\n3. Manter monitoramento trimestral do score de compliance do fornecedor.\n4. Registrar em aditivo qualquer alteração na multa ou aviso prévio para garantir transparência.\n\n## 5. Parecer Executivo\nO contrato apresenta conformidade geral satisfatória, com destaque para três itens conformes (validade da vigência, score do fornecedor). Contudo, identificou-se um item em alerta (aviso prévio) e um item não conforme (multa rescisória de 20%). Estas duas últimas áreas requerem atenção imediata da área jurídica e de governança, uma vez que configuram riscos financeiros e operacionais significativos. Recomenda-se a implementação das quatro mitigaçoes listadas para reduzir o nivel de risco geral para \"BAIXO\" e garantir maior proteção contratual às partes.\n\n---   \n*Relatório gerado automaticamente pelo Agente 2 (Avaliador de Conformidade e Risco Contratual).*\n"
+    "parecer_executivo_markdown": "# Parecer Executivo de Conformidade Contratual\n\n**Contrato:** CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE DESENVOLVIMENTO DE INTELIGÊNCIA ARTIFICIAL\n\n**Resumo:** A auditoria identificou 7 regras analisadas, com 5 itens em conformidade, 2 alertas e 0 itens não conformes diretos, porém um item de risco histórico foi classificado como **Não Conforme** devido ao precedente de renegociação de multa em 2025.\n\n## Pontos Fortes\n- Vigência e cronograma de pagamentos alinhados ao contrato.\n- Aviso prévio de 30 dias dentro do padrão aceitável.\n- Situação cadastral do fornecedor ativa e score de compliance adequado.\n- Valor total dentro do limite de alcance contratado.\n\n## Áreas de Atenção\n1. **Multa Rescisória (ALERTA):** Percentual de 20% supera o limite de referência de 15% para este tipo de contrato, exigindo revisão.\n2. **Histórico de Renegociação (NÃO CONFORME):** Passagem por renegociação de multa em 2025 eleva risco alto de futuras disputas.\n\n## Recomendações de Mitigação\n- Revisar percentual da multa para 15% ou implementar escalonamento.\n- Incluir cláusula de boa-fé nas renegociações de multa.\n- Monitoramento trimestral do score de compliance do fornecedor.\n- Formalizar aditivo, se necessário, para ajustar cláusulas de aviso prévio.\n\n## Conclusão\nO contrato encontra-se em situação geral **conformidade condicional**. As alterações recomendadas visam reduzir riscos médios e altos identificados, garantindo maior segurança jurídica para ambas as partes e alinhamento às políticas internas de governança corporativa.\n\n*Elaborado por: Agente 2 – Avaliador de Conformidade e Risco Contratual*\n*Data: 2025-08-27*"
   },
-  "decisao_governanca": "BLOQUEADO_REVISAO_JURIDICA_OBRIGATORIA"
+  "decisao_governanca": "APROVADO_DIRETORIA_EXECUTIVA"
 }
