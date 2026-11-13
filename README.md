@@ -3,155 +3,188 @@
 **Projeto de Bloco — Desenvolvimento de Agentes Inteligentes**  
 **Autora:** Maria Eduarda Mendes  
 **Repositório Oficial:** [github.com/MariaEduardaMendes/agente-analise-de-contratos](https://github.com/MariaEduardaMendes/agente-analise-de-contratos)  
-**Status da Entrega:** Microsserviços REST FastAPI, Context Engineering e Workflow n8n (TP3)  
+**Status da Entrega:** **TP4 Concluído** — Orquestração Assíncrona Completa no n8n, Governança Formal (Claude Code `settings.json` + Hooks `PreToolUse`/`PostToolUse`), Skills Reutilizáveis, Subagentes com Isolamento de Contexto, AI Agent Node e Sub-workflow Reutilizável
 
 ---
 
 ## 📖 Visão Geral
 
-Este projeto implementa um **sistema multi-agente assíncrono e desacoplado** para extração estruturada e auditoria de governança em contratos jurídicos.
+Este projeto implementa um **sistema multi-agente assíncrono e desacoplado** para extração estruturada, consulta cadastral corporativa e auditoria de governança em contratos jurídicos.
 
-Na fase **TP3**, o sistema foi reestruturado em **dois microsserviços REST independentes** orquestrados deterministicamente via **n8n**:
+Na fase **TP4**, o **n8n** atua como o **único orquestrador real do sistema**, coordenando dois microsserviços REST independentes com ciclo assíncrono completo, governança formal no Claude Code, skills reutilizáveis e subagentes isolados:
 
-1. **Agente 1 (Extrator Enriquecido — `agent1/`):**
-   - Microsserviço FastAPI na porta `8001`.
-   - Extrai entidades e aciona ferramentas Python determinísticas para normalização de datas no padrão ISO-8601 (`normalizar_prazos_e_datas`) e conferência matemática de parcelas (`extrair_e_validar_tabela_financeira`).
-   - Responde com `POST /run` retornando `202 Accepted` com `task_id` e execução assíncrona via `BackgroundTasks`.
-   - Saída tipada via Pydantic v2 (`DadosContratoExtraido`).
-   - Contexto exclusivo definido em `agent1/CLAUDE.md`.
+1. **Agente 1 (Extrator Enriquecido de Contratos — `agent1/`, Porta `8001`):**
+   - Microsserviço FastAPI (`main.py`) com execução real via OpenAI Agents SDK (`Runner.run` / OpenRouter) e saída tipada em Pydantic v2 (`DadosContratoExtraido` via `AgentOutputSchema(..., strict_json_schema=False)`).
+   - Aciona ferramentas `@function_tool` determinísticas (`normalizar_prazos_e_datas`, `extrair_e_validar_tabela_financeira` e `consultar_cadastro_fornecedor`), integradas à base relacional `cadastro_fornecedores`, busca vetorial RAG (`rag_documentos`) e histórico `SQLiteSession` em `banco_memoria_contratos.db`.
+   - Expõe `POST /run` (`202 Accepted` com `task_id`) e polling `GET /status/{task_id}`.
+   - Governado formalmente por [`agent1/CLAUDE.md`](agent1/CLAUDE.md), [`agent1/AGENTS.md`](agent1/AGENTS.md), [`agent1/.claude/settings.json`](agent1/.claude/settings.json), hooks `PreToolUse`/`PostToolUse` (bloqueio oficial `exit code 2`), skill [`validacao-financeira-contratual`](agent1/.claude/skills/validacao-financeira-contratual/SKILL.md) e subagente isolado [`validador-cadastral-fornecedor`](agent1/.claude/agents/validador-cadastral-fornecedor.md).
 
-2. **Agente 2 (Avaliador de Conformidade e Risco — `agent2/`):**
-   - Microsserviço FastAPI na porta `8002`.
-   - Recebe os dados estruturados do contrato repassados pelo orquestrador e confronta com as diretrizes corporativas (`auditar_parametros_contratuais_fn` e `consultar_base_regras_negocio_fn`).
-   - Calcula score de conformidade (0 a 100), classifica o nível de risco (`BAIXO`, `MEDIO`, `ALTO`, `CRITICO`) e emite parecer executivo estruturado em Pydantic v2 (`RelatorioConformidade`).
-   - Responde com `POST /run` (202 Accepted) e polling em `GET /status/{task_id}` via `BackgroundTasks`.
-   - Contexto exclusivo definido em `agent2/CLAUDE.md`.
+2. **Agente 2 (Avaliador de Conformidade e Risco Contratual — `agent2/`, Porta `8002`):**
+   - Microsserviço FastAPI (`main.py`) isolado, alimentado exclusivamente pelo payload estruturado roteado pelo n8n.
+   - Executa inferência real via OpenAI Agents SDK (`AgenteAuditoriaRisco`) acionando a tool `@function_tool auditar_parametros_contratuais`, confrontando teto de multa rescisória (`10%`), alçada gerencial (`R$ 100.000,00`), aviso prévio (`30 dias`) e regularidade do fornecedor.
+   - Emite parecer executivo tipado em Pydantic v2 (`RelatorioConformidade`).
+   - Governado formalmente por [`agent2/CLAUDE.md`](agent2/CLAUDE.md), [`agent2/AGENTS.md`](agent2/AGENTS.md), [`agent2/.claude/settings.json`](agent2/.claude/settings.json), hooks `PreToolUse`/`PostToolUse`, skill [`auditoria-alcada-e-multa`](agent2/.claude/skills/auditoria-alcada-e-multa/SKILL.md) e subagente isolado [`auditor-clausulas-penais`](agent2/.claude/agents/auditor-clausulas-penais.md).
 
-3. **Orquestração Determinística via n8n (`workflows/`):**
-   - Primeiro workflow implementado conectando o nó de entrada HTTP ao Agente 1, com captura assíncrona do payload estruturado (`workflows/workflow_tp3_agente_extracao.json`).
+3. **Orquestração Assíncrona Completa e AI Agent Node no n8n (`workflows/`):**
+   - **Workflow Principal ([`workflows/workflow_tp4_orquestrador_completo.json`](workflows/workflow_tp4_orquestrador_completo.json)):** Submete `POST /run` para o Agente 1 (`8001`), executa loop de polling (`Wait` + `GET /status/{task_id}` com tratamento de erro e conclusão), aplica roteamento condicional de integridade contratual, aciona o Agente 2 (`8002`) com novo polling, consolida os resultados sem perda de campos via nó `Merge` (`combineByPosition`) e delibera estrategicamente por meio de um **AI Agent Node** (`@n8n/n8n-nodes-langchain.agent`) conectado a **LLM Chat Model (OpenRouter)** e **Tool: Políticas de Governança** (`@n8n/n8n-nodes-langchain.toolCode`).
+   - **Sub-workflow Reutilizável ([`workflows/subworkflow_polling_assincrono.json`](workflows/subworkflow_polling_assincrono.json)):** Encapsula a máquina de estados de polling assíncrono com controle dinâmico de tentativas (`Incrementar Tentativa` + `Consolidar Estado do Polling`), detecção imediata de erro e saída padronizada de timeout, chamável de forma isolada via `Execute Workflow`.
 
-4. **Pipeline de Prompts Consolidado (`evaluation/`):**
-   - Documento formal avaliando 4 variantes com métricas objetivas (TCS, TIT, AFC, ASC, IGQ), ganho de +566% e diagnóstico sistemático de falhas (`evaluation/PIPELINE_PROMPTS_CONSOLIDADO.md`).
-
----
-
-## 🎥 Vídeo de Demonstração (Pitch Técnico do TP3)
-
-Demonstração prática dos dois microsserviços em execução separada, validação dos endpoints REST via Swagger/cURL, orquestração no n8n e justificativas das decisões de arquitetura e Context Engineering:
-
-> 🔗 **Link direto do YouTube:** [https://youtu.be/UsQMdx9zVFo](https://youtu.be/UsQMdx9zVFo)
-
+4. **Consistência Especificação $\leftrightarrow$ Código e Pipeline de Avaliação (`scripts/` e `evaluation/`):**
+   - Scripts automatizados validam os hooks do Claude Code ([`scripts/test_claude_hooks.py`](scripts/test_claude_hooks.py)), a consistência entre código e `CLAUDE.md`/`AGENTS.md` ([`scripts/verificar_consistencia_especificacao.py`](scripts/verificar_consistencia_especificacao.py)) e o pipeline completo ponta a ponta ([`workflows/test_orquestracao_pipeline.py`](workflows/test_orquestracao_pipeline.py)).
 
 ---
 
-## 🏛️ Arquitetura do Sistema
+## 🎥 Vídeo de Demonstração (Pitch Técnico — TP4)
 
+Demonstração prática completa da evolução do sistema no **TP4**, cobrindo:
+
+1. **Orquestração Assíncrona Completa no n8n:** Execução ponta a ponta entre Agente 1 (`8001`) e Agente 2 (`8002`) com submissão `POST /run` (`202 Accepted`), loops de polling em `GET /status/{task_id}`, roteamento condicional de integridade contratual e junção de respostas via nó `Merge`.
+2. **AI Agent Node & Sub-workflow Reutilizável:** Funcionamento do `@n8n/n8n-nodes-langchain.agent` conectado ao `LLM Chat Model (OpenRouter)` e à tool `Tool: Políticas de Governança`, além da arquitetura modular do [`subworkflow_polling_assincrono.json`](workflows/subworkflow_polling_assincrono.json).
+3. **Governança Formal do Claude Code (`settings.json` + Hooks):** Regras `allow`, `deny` e `ask` independentes por microsserviço (validadas via `claude doctor`) e disparo verificável dos hooks `PreToolUse` (bloqueio de violação de fronteira e `.env` com `exit code 2`) e `PostToolUse` (validação sintática Python/JSON).
+4. **Skills Reutilizáveis, Subagentes Isolados e Contratos `CLAUDE.md` / `AGENTS.md`:** Separação das skills (`SKILL.md`), justificativa técnica do isolamento de contexto dos subagentes (`validador-cadastral-fornecedor` e `auditor-clausulas-penais`) e auditoria de consistência código $\leftrightarrow$ especificação.
+
+> 🔗 **Link do Vídeo no YouTube (TP4):** *[A ser inserido após publicação da gravação do TP4 — Pitch anterior do TP3: [https://youtu.be/UsQMdx9zVFo](https://youtu.be/UsQMdx9zVFo)]*
+
+---
+
+## 🏛️ Arquitetura do Sistema (TP4)
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        n8n — ÚNICO ORQUESTRADOR DO SISTEMA                   │
+│                                                                              │
+│  [Input Minuta] ─> POST /run (8001) ─> [Loop Polling GET /status + Wait]     │
+│                                              │ (status == 'done')            │
+│                                              ▼                               │
+│                    [Roteador: Dados Válidos para Auditoria?]                 │
+│                       ├── False ──> [Tratamento de Exceção Contratual]       │
+│                       └── True ───┬──> [Empacotar Saída Agente 1] ─────────┐ │
+│                                   │                                        │ │
+│                                   ▼                                        │ │
+│                       POST /run (8002) ─> [Loop Polling GET /status]       │ │
+│                                              │ (status == 'done')          │ │
+│                                              ▼                             ▼ │
+│                                  [Empacotar Saída Agente 2] ──> [Merge Agentes]
+│                                                                      │       │
+│  ┌────────────────────────────────────┐                              ▼       │
+│  │ Sub-workflow Reutilizável          │        [Consolidar Dossiê Final]     │
+│  │ subworkflow_polling_assincrono.json│                              │       │
+│  └────────────────────────────────────┘                              ▼       │
+│                                          [AI Agent de Governança Estratégica]│
+│                                            ├── ai_languageModel: OpenRouter  │
+│                                            └── ai_tool: Políticas Governança │
+│                                                                      │       │
+│                                                                      ▼       │
+│                                                 [Dossiê Executivo Homologado]│
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
-┌─────────────────┐      HTTP POST /run       ┌────────────────────────┐
-│                 │ ────────────────────────> │   Agente 1 (FastAPI)   │
-│                 │ <──────────────────────── │   Porta 8001 (/run)    │
-│                 │      202 Accepted         └────────────────────────┘
-│                 │                                        │ BackgroundTask
-│                 │      HTTP GET /status                  ▼
-│       n8n       │ ────────────────────────> ┌────────────────────────┐
-│  Orquestrador   │ <──────────────────────── │   Status: 'done'       │
-│  Determinístico │      Payload Extraído     │   DadosContratoExtraido│
-│                 │                           └────────────────────────┘
-│                 │
-│                 │      HTTP POST /run       ┌────────────────────────┐
-│                 │ ────────────────────────> │   Agente 2 (FastAPI)   │
-│                 │ <──────────────────────── │   Porta 8002 (/run)    │
-│                 │      202 Accepted         └────────────────────────┘
-│                 │                                        │ BackgroundTask
-│                 │      HTTP GET /status                  ▼
-│                 │ ────────────────────────> ┌────────────────────────┐
-│                 │ <──────────────────────── │   Status: 'done'       │
-│                 │      Relatório Risco      │   RelatorioConformidade│
-└─────────────────┘                           └────────────────────────┘
-```
 
 ---
 
-## 📁 Estrutura do Repositório (TP3)
+## 📁 Estrutura do Repositório (TP4)
 
 ```text
 agente-analise-de-contratos/
-├── RELATORIO_TECNICO.md            # Relatório Técnico Unificado Oficial da Entrega
-├── README.md                       # Documentação geral do repositório
+├── RELATORIO_TECNICO.md                        # Relatório Técnico Unificado Oficial (TP4)
+├── README.md                                   # Documentação geral do repositório
+├── diagrama.md / diagrama.png                  # Especificação visual da arquitetura
+├── .claude/
+│   └── settings.json                           # Permissões base do projeto no Claude Code
 │
-├── agent1/                         # PRIMEIRO AGENTE (Extrator Enriquecido de Contratos)
-│   ├── CLAUDE.md                   # Contexto e regras exclusivas do Agente 1
-│   ├── main.py                     # Microsserviço FastAPI (Porta 8001) com BackgroundTasks
-│   ├── agente_extracao.py          # Pipeline central de extração estruturada
-│   ├── tools.py                    # Ferramentas Python de normalização temporal e matemática
-│   ├── models.py                   # Schemas Pydantic v2 (DadosContratoExtraido)
-│   ├── memoria_rag.py              # Memória de sessão SQLite e RAG vetorial
-│   ├── contrato_exemplo.txt        # Minuta jurídica de homologação
-│   ├── test_api.py                 # Testes automatizados dos endpoints REST
-│   └── requirements.txt            # Dependências específicas do Agente 1
+├── agent1/                                     # AGENTE 1 — Extrator Enriquecido (Porta 8001)
+│   ├── CLAUDE.md / AGENTS.md                   # Fonte de verdade, contratos e matriz de requisitos
+│   ├── main.py                                 # Microsserviço FastAPI (/run, /status, /health)
+│   ├── agente_extracao.py                      # Extrator real via OpenAI Agents SDK + Runner.run
+│   ├── subagente_cadastral.py                  # Subagente isolado de homologação cadastral
+│   ├── tools.py                                # @function_tool (prazos, finanças, fornecedores)
+│   ├── models.py                               # Schemas Pydantic v2 (DadosContratoExtraido)
+│   ├── memoria_rag.py                          # SQLiteSession, cadastro_fornecedores e rag_documentos
+│   ├── test_api.py                             # Suíte de testes REST do Agente 1
+│   ├── .claude/
+│   │   ├── settings.json                       # Regras allow / deny / ask e hooks (schema oficial)
+│   │   ├── hooks/                              # pre_tool_use.py e post_tool_use.py (exit code 2)
+│   │   ├── skills/validacao-financeira-contratual/SKILL.md
+│   │   └── agents/validador-cadastral-fornecedor.md
+│   ├── skills/validacao-financeira-contratual/SKILL.md
+│   └── subagents/                              # README.md + validador_cadastral.md
 │
-├── agent2/                         # SEGUNDO AGENTE (Avaliador de Conformidade e Risco)
-│   ├── CLAUDE.md                   # Contexto e regras exclusivas do Agente 2
-│   ├── main.py                     # Microsserviço FastAPI (Porta 8002) com BackgroundTasks
-│   ├── agente_auditoria.py         # Motor de auditoria contra regras corporativas
-│   ├── tools.py                    # Ferramentas Python de checagem de alçadas e multas
-│   ├── models.py                   # Schemas Pydantic v2 (RelatorioConformidade)
-│   ├── test_api.py                 # Testes automatizados dos endpoints REST
-│   └── requirements.txt            # Dependências específicas do Agente 2
+├── agent2/                                     # AGENTE 2 — Auditor de Risco e Conformidade (Porta 8002)
+│   ├── CLAUDE.md / AGENTS.md                   # Fonte de verdade, contratos e matriz de requisitos
+│   ├── main.py                                 # Microsserviço FastAPI (/run, /status, /health)
+│   ├── agente_auditoria.py                     # Auditor real via OpenAI Agents SDK + Runner.run
+│   ├── subagente_penalidades.py                # Subagente isolado de cláusulas penais
+│   ├── tools.py                                # @function_tool auditar_parametros_contratuais
+│   ├── models.py                               # Schemas Pydantic v2 (RelatorioConformidade)
+│   ├── test_api.py                             # Suíte de testes REST do Agente 2
+│   ├── .claude/
+│   │   ├── settings.json                       # Regras allow / deny / ask e hooks (schema oficial)
+│   │   ├── hooks/                              # pre_tool_use.py e post_tool_use.py (exit code 2)
+│   │   ├── skills/auditoria-alcada-e-multa/SKILL.md
+│   │   └── agents/auditor-clausulas-penais.md
+│   ├── skills/auditoria-alcada-e-multa/SKILL.md
+│   └── subagents/                              # README.md + especialista_clausulas_penais.md
 │
-├── workflows/                      # WORKFLOWS DO N8N
-│   └── workflow_tp3_agente_extracao.json # Workflow oficial homologado no n8n
+├── workflows/                                  # WORKFLOWS n8n (TP4)
+│   ├── workflow_tp4_orquestrador_completo.json # Pipeline completo com polling, Merge e AI Agent Node
+│   ├── subworkflow_polling_assincrono.json     # Sub-workflow modular reutilizável de polling
+│   ├── test_orquestracao_pipeline.py           # Validação estrutural JSON + execução E2E real
+│   ├── evidencia_execucao_orquestrador_tp4.json# Evidência consolidada da última execução E2E
+│   └── README.md                               # Documentação dos componentes e importação no n8n
 │
-├── evaluation/                     # PIPELINE DE PROMPTS E AVALIAÇÃO
-│   └── PIPELINE_PROMPTS_CONSOLIDADO.md # Benchmark, diagnóstico e decisão final técnica
+├── scripts/                                    # AUDITORIA E TESTES DE GOVERNANÇA
+│   ├── test_claude_hooks.py                    # Testes dos hooks PreToolUse (exit 2) e PostToolUse
+│   └── verificar_consistencia_especificacao.py # Auditoria automática Código ↔ CLAUDE.md/AGENTS.md
 │
-├── integration/                    # CONTRATOS DE INTERFACE E APIS
-│   └── contrato_api_agentes.md     # Especificação técnica dos endpoints, schemas e estados
+├── evaluation/                                 # BENCHMARK E PIPELINE DE PROMPTS
+│   └── PIPELINE_PROMPTS_CONSOLIDADO.md
 │
-└── docs/                           # DOCUMENTAÇÃO AUXILIAR
-    ├── CONFIGURACAO_AMBIENTE.md    # Detalhamento do ambiente Antigravity + Claude Code
-    └── screenshots/                # Evidências visuais de execução
+└── integration/                                # CONTRATOS FORMALIZADOS DE API
+    └── contrato_api_agentes.md
 ```
 
 ---
 
-## 🚀 Como Executar os Microsserviços e Testes
+## 🚀 Como Executar os Microsserviços, Workflows e Testes
 
 ### Pré-requisitos
-- Python 3.10+ (recomendado `.venv` ativo)
-- Dependências instaladas:
-  ```bash
-  pip install fastapi uvicorn pydantic python-dotenv requests
-  ```
+- Python 3.10+ (ambiente virtual `.venv` configurado na raiz)
+- Variáveis de ambiente em `.env` (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENROUTER_MODEL`)
 
-### 1. Iniciar os Serviços REST:
+### 1. Iniciar os Microsserviços REST
 
-- **Agente 1 (Extração de Contratos):**
-  ```powershell
-  uvicorn agent1.main:app --host 0.0.0.0 --port 8001 --reload
-  ```
-  *Swagger interativo: `http://localhost:8001/docs`*
+```powershell
+# Terminal 1 — Agente 1 (Extrator, Porta 8001)
+uvicorn agent1.main:app --host 0.0.0.0 --port 8001 --reload
 
-- **Agente 2 (Conformidade e Risco):**
-  ```powershell
-  uvicorn agent2.main:app --host 0.0.0.0 --port 8002 --reload
-  ```
-  *Swagger interativo: `http://localhost:8002/docs`*
+# Terminal 2 — Agente 2 (Auditor de Conformidade, Porta 8002)
+uvicorn agent2.main:app --host 0.0.0.0 --port 8002 --reload
+```
+- Swagger Agente 1: `http://localhost:8001/docs`
+- Swagger Agente 2: `http://localhost:8002/docs`
 
-### 2. Executar Testes Automatizados dos Endpoints:
+### 2. Executar as Suítes de Verificação Automatizada
 
-- Testar Agente 1 (`POST /run` e `GET /status`):
-  ```powershell
-  python agent1/test_api.py
-  ```
+```powershell
+# 1. Validar configuração formal do Claude Code
+claude doctor
 
-- Testar Agente 2 (`POST /run` e `GET /status`):
-  ```powershell
-  python agent2/test_api.py
-  ```
+# 2. Testar hooks PreToolUse (bloqueio exit=2) e PostToolUse
+.\.venv\Scripts\python.exe scripts/test_claude_hooks.py
 
-### 3. Importar o Workflow no n8n:
-1. Abra o n8n no navegador (`http://localhost:5678`).
-2. Clique no menu superior direito do editor de workflows e selecione **"Import from File"**.
-3. Escolha o arquivo [`workflows/workflow_tp3_agente_extracao.json`](workflows/workflow_tp3_agente_extracao.json).
-4. Clique em **"Execute Workflow"** para validar o acionamento HTTP e a captura de status assíncrona.
+# 3. Auditar consistência entre código-fonte, skills, subagentes e CLAUDE.md/AGENTS.md
+.\.venv\Scripts\python.exe scripts/verificar_consistencia_especificacao.py
+
+# 4. Testar API REST dos dois agentes individualmente
+Set-Location agent1; ..\.venv\Scripts\python.exe test_api.py
+Set-Location agent2; ..\.venv\Scripts\python.exe test_api.py
+
+# 5. Validar JSONs do n8n e executar orquestração assíncrona ponta a ponta
+.\.venv\Scripts\python.exe workflows/test_orquestracao_pipeline.py
+```
+
+### 3. Importar os Workflows no n8n
+1. Abra sua instância do n8n (ex.: `http://localhost:5678`).
+2. Vá em **Workflows** → **Import from File** e importe:
+   - [`workflows/subworkflow_polling_assincrono.json`](workflows/subworkflow_polling_assincrono.json)
+   - [`workflows/workflow_tp4_orquestrador_completo.json`](workflows/workflow_tp4_orquestrador_completo.json)
+3. Com ambos os serviços ativos nas portas `8001` e `8002`, clique em **Execute Workflow** para rodar o ciclo completo até o **AI Agent de Governança Estratégica**.
