@@ -3,6 +3,7 @@
 **Projeto de Bloco — Desenvolvimento de Agentes Inteligentes**  
 **Autora:** Maria Eduarda Mendes  
 **Repositório Oficial no GitHub:** [https://github.com/MariaEduardaMendes/agente-analise-de-contratos](https://github.com/MariaEduardaMendes/agente-analise-de-contratos)  
+**Vídeo de Demonstração (YouTube — TP4):** [https://youtu.be/Jq7_SBp8xps](https://youtu.be/Jq7_SBp8xps)  
 **Versão:** TP4 Consolidado — Orquestração Assíncrona no n8n, Governança com Permissões e Hooks, Skills, Subagentes com Isolamento de Contexto e Pipeline Integrado  
 **Data:** 10/11/2026  
 **Status:** Implementado, Testado com Modelos Reais e Homologado  
@@ -630,4 +631,5 @@ A execução ponta a ponta do ciclo assíncrono multi-agente foi registrada no a
 | **agent1/: settings.json, SKILL.md, CLAUDE.md/AGENTS.md** | [`agent1/`](agent1/) | ✅ Configurado e Testado |
 | **agent2/: CLAUDE.md/AGENTS.md e configurações específicas** | [`agent2/`](agent2/) | ✅ Configurado e Testado |
 | **workflows/: workflow principal e sub-workflow n8n em JSON** | [`workflows/`](workflows/) | ✅ Exportados e Validados |
+| **Vídeo de Demonstração (YouTube — TP4)** | [https://youtu.be/Jq7_SBp8xps](https://youtu.be/Jq7_SBp8xps) | ✅ Gravado e Publicado |
 

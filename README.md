@@ -36,14 +36,7 @@ Na fase **TP4**, o **n8n** atua como o **único orquestrador real do sistema**, 
 
 ## 🎥 Vídeo de Demonstração (Pitch Técnico — TP4)
 
-Demonstração prática completa da evolução do sistema no **TP4**, cobrindo:
-
-1. **Orquestração Assíncrona Completa no n8n:** Execução ponta a ponta entre Agente 1 (`8001`) e Agente 2 (`8002`) com submissão `POST /run` (`202 Accepted`), loops de polling em `GET /status/{task_id}`, roteamento condicional de integridade contratual e junção de respostas via nó `Merge`.
-2. **AI Agent Node & Sub-workflow Reutilizável:** Funcionamento do `@n8n/n8n-nodes-langchain.agent` conectado ao `LLM Chat Model (OpenRouter)` e à tool `Tool: Políticas de Governança`, além da arquitetura modular do [`subworkflow_polling_assincrono.json`](workflows/subworkflow_polling_assincrono.json).
-3. **Governança Formal do Claude Code (`settings.json` + Hooks):** Regras `allow`, `deny` e `ask` independentes por microsserviço (validadas via `claude doctor`) e disparo verificável dos hooks `PreToolUse` (bloqueio de violação de fronteira e `.env` com `exit code 2`) e `PostToolUse` (validação sintática Python/JSON).
-4. **Skills Reutilizáveis, Subagentes Isolados e Contratos `CLAUDE.md` / `AGENTS.md`:** Separação das skills (`SKILL.md`), justificativa técnica do isolamento de contexto dos subagentes (`validador-cadastral-fornecedor` e `auditor-clausulas-penais`) e auditoria de consistência código $\leftrightarrow$ especificação.
-
-> 🔗 **Link do Vídeo no YouTube (TP4):** *[A ser inserido após publicação da gravação do TP4 — Pitch anterior do TP3: [https://youtu.be/UsQMdx9zVFo](https://youtu.be/UsQMdx9zVFo)]*
+> 🔗 **Link do Vídeo no YouTube (TP4):** [https://youtu.be/Jq7_SBp8xps](https://youtu.be/Jq7_SBp8xps)
 
 ---
 
