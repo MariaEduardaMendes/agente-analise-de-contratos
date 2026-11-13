@@ -12,10 +12,12 @@ Competências do Agente 1 (Extrator Enriquecido):
 - Geração do payload estrito e limpo para consumo futuro pelo Agente 2 (Avaliador de Risco).
 """
 
+import asyncio
 import json
 import os
 import re
 import sys
+import threading
 from pathlib import Path
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
@@ -210,6 +212,14 @@ def _extrair_contingencia_deterministica(texto_contrato: str) -> DadosContratoEx
         secoes_analisadas=["PREAMBULO", "OBJETO", "CONDICOES_FINANCEIRAS", "PRAZOS_E_VIGENCIA", "PENALIDADES"]
     )
 
+_LOCK_RUNNER = threading.Lock()
+
+
+async def _executar_runner_com_timeout(agente: Agent, prompt: str, timeout_s: float = 30.0):
+    """Executa Runner.run sob timeout rígido em loop assíncrono isolado por chamada."""
+    return await asyncio.wait_for(Runner.run(agente, prompt, max_turns=3), timeout=timeout_s)
+
+
 def extrair_contrato_completo(texto_contrato: str) -> DadosContratoExtraido:
     """
     Executa a extração estruturada do contrato invocando o modelo LLM de verdade via Runner.run.
@@ -219,11 +229,9 @@ def extrair_contrato_completo(texto_contrato: str) -> DadosContratoExtraido:
     
     try:
         agente = criar_agente_extrator()
-        resultado_run = Runner.run_sync(
-            agente,
-            f"Extraia com precisão os dados da seguinte minuta contratual:\n\n{texto_contrato}",
-            max_turns=3
-        )
+        prompt_extracao = f"Extraia com precisão os dados da seguinte minuta contratual:\n\n{texto_contrato}"
+        with _LOCK_RUNNER:
+            resultado_run = asyncio.run(_executar_runner_com_timeout(agente, prompt_extracao, timeout_s=30.0))
         contrato: DadosContratoExtraido = resultado_run.final_output
     except Exception as exc:
         print(f"[AGENTE 1 ALERTA] Exceção na chamada LLM ({exc}). Aplicando parser analítico determinístico com tools...", flush=True)

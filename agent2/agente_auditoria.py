@@ -7,9 +7,11 @@ e aciona um Agent inteligente que invoca a tool de auditoria @function_tool
 e compila o relatório executivo fortemente tipado em RelatorioConformidade.
 """
 
+import asyncio
 import json
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import Dict, Any, List
 from dotenv import load_dotenv
@@ -72,6 +74,14 @@ def criar_agente_auditor() -> Agent:
         model=model
     )
 
+_LOCK_RUNNER = threading.Lock()
+
+
+async def _executar_runner_com_timeout(agente: Agent, prompt: str, timeout_s: float = 35.0):
+    """Executa Runner.run sob timeout rígido em loop assíncrono isolado por chamada."""
+    return await asyncio.wait_for(Runner.run(agente, prompt, max_turns=3), timeout=timeout_s)
+
+
 def avaliar_conformidade_contrato(dados_contrato: Dict[str, Any]) -> RelatorioConformidade:
     """
     Executa a auditoria completa de risco e conformidade sobre os dados do contrato.
@@ -89,7 +99,8 @@ def avaliar_conformidade_contrato(dados_contrato: Dict[str, Any]) -> RelatorioCo
     )
     
     try:
-        resultado = Runner.run_sync(agente, prompt_usuario, max_turns=3)
+        with _LOCK_RUNNER:
+            resultado = asyncio.run(_executar_runner_com_timeout(agente, prompt_usuario, timeout_s=35.0))
         relatorio: RelatorioConformidade = resultado.final_output
         if relatorio.score_conformidade <= 0.0 and relatorio.total_regras_auditadas > 0:
             relatorio.score_conformidade = round(
