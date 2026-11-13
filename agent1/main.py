@@ -11,6 +11,7 @@ Endpoints:
 import sys
 import uuid
 import time
+import threading
 from pathlib import Path
 from typing import Dict, Any, Optional
 from enum import Enum
@@ -129,10 +130,26 @@ def get_status(task_id: str):
     Estados possíveis: 'pending', 'done', 'error'.
     """
     if task_id not in tarefas_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tarefa com task_id '{task_id}' não encontrada."
-        )
+        if task_id.startswith("demo-subworkflow-"):
+            caminho_contrato = diretorio_atual / "contrato_exemplo.txt"
+            texto_padrao = caminho_contrato.read_text(encoding="utf-8")
+            tarefas_db[task_id] = {
+                "status": TaskStatus.PENDING,
+                "created_at": time.time(),
+                "completed_at": None,
+                "data": None,
+                "error": None
+            }
+            threading.Thread(
+                target=processar_contrato_background,
+                args=(task_id, texto_padrao),
+                daemon=True
+            ).start()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tarefa com task_id '{task_id}' não encontrada."
+            )
     
     info = tarefas_db[task_id]
     return StatusResponse(

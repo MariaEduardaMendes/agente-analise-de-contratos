@@ -1,4 +1,5 @@
 {
+  "id": "IT2Helo3G5z3dBTE",
   "name": "Sub-workflow: Polling Assincrono Resiliente de Tarefas",
   "nodes": [
     {
@@ -14,7 +15,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Inicializa os parâmetros de sondagem com contador zerado\nconst entrada = $json;\nif (!entrada.task_id) {\n  throw new Error('Parâmetro obrigatório ausente: task_id');\n}\nreturn [{\n  json: {\n    endpoint_status: entrada.endpoint_status || \"http://127.0.0.1:8001/status/\",\n    task_id: entrada.task_id,\n    intervalo_segundos: Number(entrada.intervalo_segundos || 2),\n    tentativa_atual: 0,\n    max_tentativas: Number(entrada.max_tentativas || 30)\n  }\n}];"
+        "jsCode": "// Inicializa os parâmetros de sondagem com contador zerado.\n// Quando executado isoladamente no editor n8n (sem input do workflow pai),\n// gera um task_id de demonstração autônomo ('demo-subworkflow-<timestamp>')\n// que dispara e monitora uma tarefa assíncrona real no Agente 1.\nconst entrada = $json || {};\nconst taskId = entrada.task_id || `demo-subworkflow-${Date.now()}`;\nreturn [{\n  json: {\n    endpoint_status: entrada.endpoint_status || \"http://127.0.0.1:8001/status/\",\n    task_id: taskId,\n    intervalo_segundos: Number(entrada.intervalo_segundos || 2),\n    tentativa_atual: 0,\n    max_tentativas: Number(entrada.max_tentativas || 30),\n    modo_execucao: entrada.task_id ? \"subworkflow_chamado\" : \"teste_isolado_autonomo\"\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -293,7 +294,8 @@
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "availableInMCP": true
   },
   "versionId": "sub-wf-polling-000000000002",
   "meta": {
